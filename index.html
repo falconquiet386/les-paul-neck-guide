@@ -867,14 +867,15 @@ const MODELS = [
     }
 
     function getOverlayModels() {
-      return MODELS.filter((model) => state.overlays.includes(model.name));
+      return MODELS.filter((model) => state.overlays.includes(model.name) && model.name !== state.selectedModel);
     }
 
     function groupColor(group) {
       return GROUP_COLORS[group] || "#8b949e";
     }
 
-function modelColor(model) {
+const MODEL_COLOR_MAP = {};
+    MODELS.forEach((m, i) => {
       const palette = [
         "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
         "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
@@ -883,8 +884,11 @@ function modelColor(model) {
         "#393b79", "#5254a3", "#636363", "#b5cf6b", "#de9ed6",
         "#756bb1", "#d6616b", "#ad494a", "#8ca252", "#6d904f"
       ];
-      const idx = MODELS.indexOf(model) % palette.length;
-      return palette[idx];
+      MODEL_COLOR_MAP[m.name] = palette[i % palette.length];
+    });
+
+    function modelColor(model) {
+      return MODEL_COLOR_MAP[model.name] || "#8b949e";
     }
 
     function provenanceBadgeClass(provenance) {
@@ -948,14 +952,18 @@ function modelColor(model) {
     }
 
     function buildOverlayChecks() {
+      state.overlays = state.overlays.filter((name) => name !== state.selectedModel);
+
       const visible = getVisibleModels();
       const selected = new Set(state.overlays);
       const html = visible.map((model) => {
+        const isSelected = model.name === state.selectedModel;
         const checked = selected.has(model.name) ? "checked" : "";
+        const disabled = isSelected ? "disabled" : "";
         const swatch = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + modelColor(model) + ';"></span>';
         return `
-          <label class="overlay-checkbox" title="${model.name}">
-            <input type="checkbox" value="${model.name}" ${checked}>
+          <label class="overlay-checkbox" title="${model.name}" ${isSelected ? 'style="opacity:0.5;"' : ""}>
+            <input type="checkbox" value="${model.name}" ${checked} ${disabled}>
             ${swatch}
             <span>${model.name}</span>
           </label>
@@ -1093,6 +1101,10 @@ function modelColor(model) {
       const overlays = getOverlayModels();
       const models = [model, ...overlays];
 
+      // Dedupe by name
+      const seen = new Set();
+      const uniqueModels = models.filter((m) => !seen.has(m.name) && seen.add(m.name));
+
       const fretboardThicknessMm = 5.5;
       const titleAreaHeight = 40;
       const scaleBarHeight = 30;
@@ -1104,7 +1116,7 @@ function modelColor(model) {
       let maxDepth = -Infinity;
       let maxWidth = -Infinity;
 
-      models.forEach((m) => {
+      uniqueModels.forEach((m) => {
         const depth = getDepthValue(m, state.fret, "mm");
         const width = state.fret === "first" ? 43.0 : 52.4;
         minDepth = Math.min(minDepth, fretboardThicknessMm);
@@ -1163,10 +1175,10 @@ function modelColor(model) {
         return path;
       };
 
-      const colors = models.map((m) => modelColor(m));
+      const colors = uniqueModels.map((m) => modelColor(m));
 
       // PHASE 1: Fill all shapes
-      models.forEach((m, idx) => {
+      uniqueModels.forEach((m, idx) => {
         const depth = getDepthValue(m, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
         const color = colors[idx];
@@ -1175,11 +1187,11 @@ function modelColor(model) {
         const fbThickness = fretboardThicknessMm * scale;
 
         // Fill fretboard
-        ctx.fillStyle = `rgba(45, 164, 78, 0.25)`;
+        ctx.fillStyle = `rgba(110, 118, 129, 0.45)`;
         ctx.fillRect(centerX - fbWidth / 2, centerY - fbThickness, fbWidth, fbThickness);
 
         // Fill back curve
-        ctx.fillStyle = hexToRgba(color, 0.25);
+        ctx.fillStyle = hexToRgba(color, 0.5);
         ctx.beginPath();
         const steps = 200;
         for (let i = 0; i <= steps; i++) {
@@ -1198,11 +1210,11 @@ function modelColor(model) {
         ctx.fill();
       });
 
-      // PHASE 2: Draw delta highlight if exactly 2 models (selected + 1 overlay)
+      // PHASE 2: Draw delta highlight if exactly 2 models
       let deltaNote = "";
-      if (models.length === 2) {
-        const m0 = models[0];
-        const m1 = models[1];
+      if (uniqueModels.length === 2) {
+        const m0 = uniqueModels[0];
+        const m1 = uniqueModels[1];
         const depth0 = getDepthValue(m0, state.fret, "mm");
         const depth1 = getDepthValue(m1, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
@@ -1246,7 +1258,7 @@ function modelColor(model) {
       }
 
       // PHASE 3: Stroke all outlines
-      models.forEach((m, idx) => {
+      uniqueModels.forEach((m, idx) => {
         const depth = getDepthValue(m, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
         const color = colors[idx];
@@ -1313,7 +1325,7 @@ function modelColor(model) {
       ctx.fillText(scaleLabel, scaleBarX + scaleBarPx + 6, scaleBarY - 6);
 
       // Legend
-      ui.legend.innerHTML = models.map((m, i) => {
+      ui.legend.innerHTML = uniqueModels.map((m, i) => {
         const color = colors[i];
         return `<div class="legend-item"><div class="legend-color" style="background:${color};border:1px solid ${color}; opacity:1;"></div> ${m.name}</div>`;
       }).join("");
