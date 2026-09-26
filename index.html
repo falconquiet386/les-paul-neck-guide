@@ -1379,9 +1379,8 @@ function modelColor(model) {
     function setupTableSort() {
       const headers = document.querySelectorAll("table thead th[data-sort-key]");
       headers.forEach((th) => {
-        if (!th.dataset.baseLabel) {
-          th.dataset.baseLabel = th.textContent.trim();
-        }
+        const baseLabel = th.textContent.replace(/\s*[▲▼]\s*$/, "").trim();
+        th.dataset.baseLabel = baseLabel;
         th.style.cursor = "pointer";
         th.addEventListener("click", () => {
           const key = th.getAttribute("data-sort-key");
@@ -1493,7 +1492,8 @@ function drawBuyersTable() {
       const headers = document.querySelectorAll("table thead th[data-sort-key]");
       headers.forEach((th) => {
         const key = th.getAttribute("data-sort-key");
-        const baseLabel = th.dataset.baseLabel || th.textContent.trim();
+        const baseLabel = th.textContent.replace(/\s*[▲▼]\s*$/, "").trim();
+        th.dataset.baseLabel = baseLabel;
         if (key === state.tableSort.key) {
           const indicator = state.tableSort.dir === "asc" ? " ▲" : " ▼";
           th.textContent = baseLabel + indicator;
