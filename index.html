@@ -575,6 +575,51 @@
                 transition-duration: 0.01ms !important;
             }
         }
+        #cross-section-info {
+            font-size: 13px;
+            color: #8b949e;
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: #161b22;
+            border-radius: 4px;
+            border-left: 3px solid #58a6ff;
+        }
+
+        #cross-section-info strong {
+            color: #c9d1d9;
+        }
+
+        .shoulder-chip {
+            display: inline-block;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: #8b949e;
+            margin-left: 8px;
+            text-transform: capitalize;
+        }
+
+        .shoulder-chip.very-full {
+            border-color: #e5484d;
+            color: #e5484d;
+        }
+
+        .shoulder-chip.full {
+            border-color: #46a758;
+            color: #46a758;
+        }
+
+        .shoulder-chip.medium {
+            border-color: #3e8fd5;
+            color: #3e8fd5;
+        }
+
+        .shoulder-chip.low {
+            border-color: #9e6fc4;
+            color: #9e6fc4;
+        }
     </style>
 </head>
 
@@ -618,10 +663,16 @@
       <div class="canvas-controls">
         <select id="cross-section-model" aria-label="Primary model"></select>
         <div class="overlay-checkboxes" id="overlay-checkboxes" aria-label="Comparison models"></div>
+        <label class="overlay-checkbox" style="margin-left: auto;">
+          <input type="checkbox" id="shape-only-checkbox">
+          <span>Shape only (normalize depth)</span>
+        </label>
       </div>
+      <div id="cross-section-info" style="font-size:13px;color:#8b949e;margin:8px 0;"></div>
       <canvas id="cross-section-canvas" width="980" height="440"></canvas>
       <div class="legend" id="cross-section-legend"></div>
       <div class="canvas-note">Cross-section shoulder shape is an idealized rendering - the depths are the measured data.</div>
+
     </section>
 
     <section class="section">
@@ -706,425 +757,29 @@
   </footer>
 
   <script>
-    const MODELS = [
- {
-  "name": "1954 Les Paul (original)",
-  "group": "Vintage originals",
-  "first_in": 0.9,
-  "twelfth_in": 1.0,
-  "first_mm": 22.9,
-  "twelfth_mm": 25.4,
-  "range_first_in": [
-   0.88,
-   0.92
-  ],
-  "range_twelfth_in": [
-   0.98,
-   1.02
-  ],
-  "profile": "Early '50s baseball bat",
-  "shoulder": "Huge rounded shoulders",
-  "k": 2.7,
-  "provenance": "GUIDE",
-  "provenance_detail": "Vintage authentication guides + dealer example (.92\" at 1st)",
-  "source": "https://joesvintageguitarsaz.com/post/1954-gibson-les-paul-goldtop-authentication-guide/",
-  "note": "The original wrap-tail goldtop: the benchmark 'baseball bat'."
- },
- {
-  "name": "1958 Burst (original avg)",
-  "group": "Vintage originals",
-  "first_in": 0.9,
-  "twelfth_in": 0.989,
-  "first_mm": 22.9,
-  "twelfth_mm": 25.1,
-  "range_first_in": [
-   0.882,
-   0.921
-  ],
-  "range_twelfth_in": [
-   0.97,
-   0.996
-  ],
-  "profile": "Late '50s chunky C",
-  "shoulder": "Full shoulders",
-  "k": 2.5,
-  "provenance": "BOOK",
-  "provenance_detail": "Beauty of the Burst table, avg of 8 '58s (12th extrapolated from 11th)",
-  "source": "https://www.mylespaul.com/threads/interesting-data-on-1958-59-60-neck-profiles.363357/",
-  "note": "What every R8 is chasing. Tighter spread than '59s."
- },
- {
-  "name": "1959 Burst (original avg)",
-  "group": "Vintage originals",
-  "first_in": 0.879,
-  "twelfth_in": 0.979,
-  "first_mm": 22.3,
-  "twelfth_mm": 24.9,
-  "range_first_in": [
-   0.807,
-   0.921
-  ],
-  "range_twelfth_in": [
-   0.95,
-   1.0
-  ],
-  "profile": "'59 rounded medium C",
-  "shoulder": "Medium shoulders",
-  "k": 2.2,
-  "provenance": "BOOK",
-  "provenance_detail": "BOTB table, avg of 36 '59s; widest variance of the era",
-  "source": "https://www.mylespaul.com/threads/interesting-data-on-1958-59-60-neck-profiles.363357/",
-  "note": "Averages slimmer than '58, but individual '59s run from skinny to fat."
- },
- {
-  "name": "1960 Burst (original avg)",
-  "group": "Vintage originals",
-  "first_in": 0.831,
-  "twelfth_in": 0.912,
-  "first_mm": 21.1,
-  "twelfth_mm": 23.2,
-  "range_first_in": [
-   0.803,
-   0.909
-  ],
-  "range_twelfth_in": [
-   0.89,
-   0.93
-  ],
-  "profile": "'60 slim taper",
-  "shoulder": "Low shoulders",
-  "k": 1.9,
-  "provenance": "BOOK",
-  "provenance_detail": "BOTB table, avg of 9 '60s",
-  "source": "https://www.mylespaul.com/threads/interesting-data-on-1958-59-60-neck-profiles.363357/",
-  "note": "The slim era. Contrast reference, not a chunky-neck target."
- },
- {
-  "name": "Early 2000s R8 (2000-2005)",
-  "group": "R8 family",
-  "first_in": 0.93,
-  "twelfth_in": 1.01,
-  "first_mm": 23.6,
-  "twelfth_mm": 25.7,
-  "range_first_in": [
-   0.9,
-   0.96
-  ],
-  "range_twelfth_in": [
-   1.0,
-   1.03
-  ],
-  "profile": "Early '50s rounded",
-  "shoulder": "Biggest shoulders of any modern R8",
-  "k": 2.75,
-  "provenance": "AGG",
-  "provenance_detail": "Forum-era aggregate (historic averages: R8 .930\" at 1st); 12th fret poorly documented for these years",
-  "source": "https://www.mylespaul.com/threads/neck-sizes-over-the-years.16684/",
-  "note": "Reputedly the fattest modern era. Verify the specific guitar - no published spec exists."
- },
- {
-  "name": "2007 R8 (measured example)",
-  "group": "R8 family",
-  "first_in": 0.9,
-  "twelfth_in": 0.998,
-  "first_mm": 22.9,
-  "twelfth_mm": 25.3,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "'58 rounded",
-  "shoulder": "Full shoulders",
-  "k": 2.55,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper measurement (mylespaul)",
-  "source": "https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/",
-  "note": "One documented example of the pre-2013 carve."
- },
- {
-  "name": "2011 R8 (era range)",
-  "group": "R8 family",
-  "first_in": 0.91,
-  "twelfth_in": 1.005,
-  "first_mm": 23.1,
-  "twelfth_mm": 25.5,
-  "range_first_in": [
-   0.87,
-   0.95
-  ],
-  "range_twelfth_in": [
-   0.98,
-   1.03
-  ],
-  "profile": "'58 rounded, D-leaning",
-  "shoulder": "Full shoulders, vary guitar to guitar",
-  "k": 2.55,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner-reported range for 2011 R8s (mylespaul)",
-  "source": "https://www.mylespaul.com/threads/11-r8-neck-size.364593/",
-  "note": "Pre-2013 R8s run big but inconsistent - range shown is the whole spread."
- },
- {
-  "name": "2014 R8 (measured examples)",
-  "group": "R8 family",
-  "first_in": 0.922,
-  "twelfth_in": 1.042,
-  "first_mm": 23.4,
-  "twelfth_mm": 26.5,
-  "range_first_in": [
-   0.909,
-   0.936
-  ],
-  "range_twelfth_in": [
-   1.025,
-   1.1
-  ],
-  "profile": "Chunky C",
-  "shoulder": "Full shoulders",
-  "k": 2.5,
-  "provenance": "OWNER",
-  "provenance_detail": "Three owner caliper examples: .936/1.025, .909/1.060, .93/1.10",
-  "source": "https://www.mylespaul.com/threads/2018-19-r8-vs-r9-necks.429991/",
-  "note": "Peak-chunk years of the modern Historic line."
- },
- {
-  "name": "True Historic R8 (2015-16)",
-  "group": "R8 family",
-  "first_in": 0.91,
-  "twelfth_in": 1.0,
-  "first_mm": 23.1,
-  "twelfth_mm": 25.4,
-  "range_first_in": [
-   0.903,
-   0.918
-  ],
-  "range_twelfth_in": [
-   1.0,
-   1.028
-  ],
-  "profile": "Hand-carved '58, slimmer shoulder",
-  "shoulder": "Slimmer, sloping shoulder - feels smaller than the numbers",
-  "k": 1.85,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner .91/1.00 + dealer-measured 2018 TH-spec .903/1.028; hand-carved, varies",
-  "source": "https://www.mylespaul.com/threads/r8-neck-thickness-through-the-years.462233/",
-  "note": "Hand-carved like the originals, so spread is real - measure the specific guitar before buying."
- },
- {
-  "name": "2018 Historic '58 (factory target)",
-  "group": "R8 family",
-  "first_in": 0.89,
-  "twelfth_in": 1.0,
-  "first_mm": 22.6,
-  "twelfth_mm": 25.4,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "Medium-chunky C (Gibson's words)",
-  "shoulder": "Medium-full shoulders",
-  "k": 2.3,
-  "provenance": "OFFICIAL",
-  "provenance_detail": "Gibson 2018 spec: .9\" depth at nut, 1.0\" at 12th fret",
-  "source": "http://legacy.gibson.com/Products/Electric-Guitars/2018/Custom/Historic-58-Les-Paul-Standard.aspx",
-  "note": "The only era with a published factory number for the '58."
- },
- {
-  "name": "2016-17 R8 (post-TH example)",
-  "group": "R8 family",
-  "first_in": 0.9,
-  "twelfth_in": 1.0,
-  "first_mm": 22.9,
-  "twelfth_mm": 25.4,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "'58 rounded",
-  "shoulder": "Full shoulders",
-  "k": 2.2,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper measurement (mylespaul)",
-  "source": "https://www.mylespaul.com/threads/i-measured-the-neck-on-my-r8.472136/",
-  "note": "Post-True-Historic Historic line settled around here."
- },
- {
-  "name": "Current R8 (2019+)",
-  "group": "R8 family",
-  "first_in": 0.92,
-  "twelfth_in": 1.02,
-  "first_mm": 23.4,
-  "twelfth_mm": 25.9,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "50s Rounded Medium C (Gibson)",
-  "shoulder": "Full shoulders",
-  "k": 2.3,
-  "provenance": "DEALER",
-  "provenance_detail": "Dealer caliper measurement of a current 58LPRI (Willcutt)",
-  "source": "https://willcuttguitars.com/products/gibson-custom-shop-1958-les-paul-standard-reissue-gib-58lpri-811669",
-  "note": "The safest new-guitar chunky buy; dealers publish per-guitar numbers."
- },
- {
-  "name": "2012 R9 (measured example)",
-  "group": "R9 family",
-  "first_in": 0.9,
-  "twelfth_in": 1.0,
-  "first_mm": 22.9,
-  "twelfth_mm": 25.4,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "'59 rounded",
-  "shoulder": "Medium shoulders",
-  "k": 2.15,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper measurement (mylespaul)",
-  "source": "https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/",
-  "note": ""
- },
- {
-  "name": "Modern '59 Reissue (2019+)",
-  "group": "R9 family",
-  "first_in": 0.89,
-  "twelfth_in": 1.02,
-  "first_mm": 22.6,
-  "twelfth_mm": 25.9,
-  "range_first_in": [
-   0.88,
-   0.9
-  ],
-  "range_twelfth_in": [
-   1.0,
-   1.04
-  ],
-  "profile": "Authentic '59 medium C",
-  "shoulder": "Medium shoulders",
-  "k": 2.1,
-  "provenance": "DEALER",
-  "provenance_detail": "Dealer measurements .880/1.000 (Wildwood) and .900/1.040 (Willcutt)",
-  "source": "https://willcuttguitars.com/products/gibson-custom-shop-1959-les-paul-standard-reissue-washed-cherry-burst-murphy-lab-ultra-light-aged-gib-lpr59psl17416-used-912785",
-  "note": "Big taper: slim at the nut, fills out up the neck."
- },
- {
-  "name": "60th Anniv R9 'Carmelita' (2019)",
-  "group": "R9 family",
-  "first_in": 0.87,
-  "twelfth_in": 0.97,
-  "first_mm": 22.1,
-  "twelfth_mm": 24.6,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "'59 Carmelita / 50s Rounded Medium C",
-  "shoulder": "Little to no shoulder",
-  "k": 1.95,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper .87-.97; carve 3D-scanned from original 9 1953",
-  "source": "https://www.mylespaul.com/threads/2014-and-beyond-neck-shapes-on-r8-r9.440693/",
-  "note": "A documented real '59 carve - proof not all '59s are big."
- },
- {
-  "name": "2018 Historic '60 / R0 (factory target)",
-  "group": "R0 / R7",
-  "first_in": 0.81,
-  "twelfth_in": 0.92,
-  "first_mm": 20.6,
-  "twelfth_mm": 23.4,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "'60 slim taper C",
-  "shoulder": "Low shoulders",
-  "k": 1.8,
-  "provenance": "OFFICIAL",
-  "provenance_detail": "Gibson 2018 targets quoted by dealer (thegearpage)",
-  "source": "https://www.thegearpage.net/board/index.php?threads/what-is-a-slim-c-neck-profile-on-a-lp.1985556/",
-  "note": "Factory-target slim. Contrast reference."
- },
- {
-  "name": "2017 R0 (measured example)",
-  "group": "R0 / R7",
-  "first_in": 0.85,
-  "twelfth_in": 0.9,
-  "first_mm": 21.6,
-  "twelfth_mm": 22.9,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "'60 slim C",
-  "shoulder": "Low shoulders",
-  "k": 1.85,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper measurement (mylespaul)",
-  "source": "https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/",
-  "note": ""
- },
- {
-  "name": "2013 R7 Goldtop",
-  "group": "R0 / R7",
-  "first_in": 0.94,
-  "twelfth_in": 1.03,
-  "first_mm": 23.9,
-  "twelfth_mm": 26.2,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "'57 baseball bat",
-  "shoulder": "Massive rounded shoulders",
-  "k": 2.8,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper .94 at 1st (12th reported up to ~1.03-1.1 on pre-2014 R7s - treat 12th as approximate)",
-  "source": "https://www.mylespaul.com/threads/r8-neck-thickness-through-the-years.462233/",
-  "note": "Pre-2014 R7s are the tree trunks of the Historic line."
- },
- {
-  "name": "Les Paul Standard 50s (USA)",
-  "group": "USA line",
-  "first_in": 0.88,
-  "twelfth_in": 0.99,
-  "first_mm": 22.4,
-  "twelfth_mm": 25.1,
-  "range_first_in": [
-   0.87,
-   0.9
-  ],
-  "range_twelfth_in": [
-   0.97,
-   1.0
-  ],
-  "profile": "Rounded 50s",
-  "shoulder": "Medium-full shoulders",
-  "k": 2.05,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner .88/.99 (2019); Gibson's 2015 CS8 50s spec was .900/1.000",
-  "source": "https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/",
-  "note": "Cheapest route into a genuinely big Gibson neck."
- },
- {
-  "name": "Les Paul Standard 60s (USA)",
-  "group": "USA line",
-  "first_in": 0.813,
-  "twelfth_in": 0.913,
-  "first_mm": 20.7,
-  "twelfth_mm": 23.2,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "Slim taper 60s",
-  "shoulder": "Low shoulders",
-  "k": 1.8,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper measurement (mylespaul)",
-  "source": "https://www.mylespaul.com/threads/neck-measurements-for-60s-necks.486043/",
-  "note": "What 'slim' means in numbers - the anti-chunk reference."
- },
- {
-  "name": "2016 LP Traditional",
-  "group": "USA line",
-  "first_in": 0.84,
-  "twelfth_in": 0.982,
-  "first_mm": 21.3,
-  "twelfth_mm": 24.9,
-  "range_first_in": null,
-  "range_twelfth_in": null,
-  "profile": "50s rounded (Traditional)",
-  "shoulder": "Medium shoulders",
-  "k": 2.0,
-  "provenance": "OWNER",
-  "provenance_detail": "Owner caliper measurement (mylespaul)",
-  "source": "https://www.mylespaul.com/threads/2018-19-r8-vs-r9-necks.429991/",
-  "note": ""
- }
-];
+const MODELS = [
+ {"name":"1954 Les Paul (original)","group":"Vintage originals","first_in":0.9,"twelfth_in":1.0,"first_mm":22.9,"twelfth_mm":25.4,"range_first_in":[0.88,0.92],"range_twelfth_in":[0.98,1.02],"profile":"Early '50s baseball bat","shoulder":"Huge rounded shoulders","k":2.7,"shoulderLevel":"very full","provenance":"GUIDE","provenance_detail":"Vintage authentication guides + dealer example (.92\" at 1st)","source":"https://joesvintageguitarsaz.com/post/1954-gibson-les-paul-goldtop-authentication-guide/","note":"The original wrap-tail goldtop: the benchmark 'baseball bat'."},
+ {"name":"1958 Burst (original avg)","group":"Vintage originals","first_in":0.9,"twelfth_in":0.989,"first_mm":22.9,"twelfth_mm":25.1,"range_first_in":[0.882,0.921],"range_twelfth_in":[0.97,0.996],"profile":"Late '50s chunky C","shoulder":"Full shoulders","k":2.5,"shoulderLevel":"full","provenance":"BOOK","provenance_detail":"Beauty of the Burst table, avg of 8 '58s (12th extrapolated from 11th)","source":"https://www.mylespaul.com/threads/interesting-data-on-1958-59-60-neck-profiles.363357/","note":"What every R8 is chasing. Tighter spread than '59s."},
+ {"name":"1959 Burst (original avg)","group":"Vintage originals","first_in":0.879,"twelfth_in":0.979,"first_mm":22.3,"twelfth_mm":24.9,"range_first_in":[0.807,0.921],"range_twelfth_in":[0.95,1.0],"profile":"'59 rounded medium C","shoulder":"Medium shoulders","k":2.2,"shoulderLevel":"medium","provenance":"BOOK","provenance_detail":"BOTB table, avg of 36 '59s; widest variance of the era","source":"https://www.mylespaul.com/threads/interesting-data-on-1958-59-60-neck-profiles.363357/","note":"Averages slimmer than '58, but individual '59s run from skinny to fat."},
+ {"name":"1960 Burst (original avg)","group":"Vintage originals","first_in":0.831,"twelfth_in":0.912,"first_mm":21.1,"twelfth_mm":23.2,"range_first_in":[0.803,0.909],"range_twelfth_in":[0.89,0.93],"profile":"'60 slim taper","shoulder":"Low shoulders","k":1.9,"shoulderLevel":"low","provenance":"BOOK","provenance_detail":"BOTB table, avg of 9 '60s","source":"https://www.mylespaul.com/threads/interesting-data-on-1958-59-60-neck-profiles.363357/","note":"The slim era. Contrast reference, not a chunky-neck target."},
+ {"name":"Early 2000s R8 (2000-2005)","group":"R8 family","first_in":0.93,"twelfth_in":1.01,"first_mm":23.6,"twelfth_mm":25.7,"range_first_in":[0.9,0.96],"range_twelfth_in":[1.0,1.03],"profile":"Early '50s rounded","shoulder":"Biggest shoulders of any modern R8","k":2.75,"shoulderLevel":"very full","provenance":"AGG","provenance_detail":"Forum-era aggregate (historic averages: R8 .930\" at 1st); 12th fret poorly documented for these years","source":"https://www.mylespaul.com/threads/neck-sizes-over-the-years.16684/","note":"Reputedly the fattest modern era. Verify the specific guitar - no published spec exists."},
+ {"name":"2007 R8 (measured example)","group":"R8 family","first_in":0.9,"twelfth_in":0.998,"first_mm":22.9,"twelfth_mm":25.3,"range_first_in":null,"range_twelfth_in":null,"profile":"'58 rounded","shoulder":"Full shoulders","k":2.55,"shoulderLevel":"full","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/","note":"One documented example of the pre-2013 carve."},
+ {"name":"2011 R8 (era range)","group":"R8 family","first_in":0.91,"twelfth_in":1.005,"first_mm":23.1,"twelfth_mm":25.5,"range_first_in":[0.87,0.95],"range_twelfth_in":[0.98,1.03],"profile":"'58 rounded, D-leaning","shoulder":"Full shoulders, vary guitar to guitar","k":2.55,"shoulderLevel":"full","provenance":"OWNER","provenance_detail":"Owner-reported range for 2011 R8s (mylespaul)","source":"https://www.mylespaul.com/threads/11-r8-neck-size.364593/","note":"Pre-2013 R8s run big but inconsistent - range shown is the whole spread."},
+ {"name":"2014 R8 (measured examples)","group":"R8 family","first_in":0.922,"twelfth_in":1.042,"first_mm":23.4,"twelfth_mm":26.5,"range_first_in":[0.909,0.936],"range_twelfth_in":[1.025,1.1],"profile":"Chunky C","shoulder":"Full shoulders","k":2.5,"shoulderLevel":"full","provenance":"OWNER","provenance_detail":"Three owner caliper examples: .936/1.025, .909/1.060, .93/1.10","source":"https://www.mylespaul.com/threads/2018-19-r8-vs-r9-necks.429991/","note":"Peak-chunk years of the modern Historic line."},
+ {"name":"True Historic R8 (2015-16)","group":"R8 family","first_in":0.91,"twelfth_in":1.0,"first_mm":23.1,"twelfth_mm":25.4,"range_first_in":[0.903,0.918],"range_twelfth_in":[1.0,1.028],"profile":"Hand-carved '58, slimmer shoulder","shoulder":"Slimmer, sloping shoulder - feels smaller than the numbers","k":2.15,"shoulderLevel":"medium","provenance":"OWNER","provenance_detail":"Owner .91/1.00 + dealer-measured 2018 TH-spec .903/1.028; hand-carved, varies","source":"https://www.mylespaul.com/threads/r8-neck-thickness-through-the-years.462233/","note":"Hand-carved like the originals, so spread is real - measure the specific guitar before buying."},
+ {"name":"2018 Historic '58 (factory target)","group":"R8 family","first_in":0.89,"twelfth_in":1.0,"first_mm":22.6,"twelfth_mm":25.4,"range_first_in":null,"range_twelfth_in":null,"profile":"Medium-chunky C (Gibson's words)","shoulder":"Medium-full shoulders","k":2.3,"shoulderLevel":"medium","provenance":"OFFICIAL","provenance_detail":"Gibson 2018 spec: .9\" depth at nut, 1.0\" at 12th fret","source":"http://legacy.gibson.com/Products/Electric-Guitars/2018/Custom/Historic-58-Les-Paul-Standard.aspx","note":"The only era with a published factory number for the '58."},
+ {"name":"2016-17 R8 (post-TH example)","group":"R8 family","first_in":0.9,"twelfth_in":1.0,"first_mm":22.9,"twelfth_mm":25.4,"range_first_in":null,"range_twelfth_in":null,"profile":"'58 rounded","shoulder":"Full shoulders","k":2.2,"shoulderLevel":"full","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/i-measured-the-neck-on-my-r8.472136/","note":"Post-True-Historic Historic line settled around here."},
+ {"name":"Current R8 (2019+)","group":"R8 family","first_in":0.92,"twelfth_in":1.02,"first_mm":23.4,"twelfth_mm":25.9,"range_first_in":null,"range_twelfth_in":null,"profile":"50s Rounded Medium C (Gibson)","shoulder":"Full shoulders","k":2.3,"shoulderLevel":"full","provenance":"DEALER","provenance_detail":"Dealer caliper measurement of a current 58LPRI (Willcutt)","source":"https://willcuttguitars.com/products/gibson-custom-shop-1958-les-paul-standard-reissue-gib-58lpri-811669","note":"The safest new-guitar chunky buy; dealers publish per-guitar numbers."},
+ {"name":"2012 R9 (measured example)","group":"R9 family","first_in":0.9,"twelfth_in":1.0,"first_mm":22.9,"twelfth_mm":25.4,"range_first_in":null,"range_twelfth_in":null,"profile":"'59 rounded","shoulder":"Medium shoulders","k":2.15,"shoulderLevel":"medium","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/","note":""},
+ {"name":"Modern '59 Reissue (2019+)","group":"R9 family","first_in":0.89,"twelfth_in":1.02,"first_mm":22.6,"twelfth_mm":25.9,"range_first_in":[0.88,0.9],"range_twelfth_in":[1.0,1.04],"profile":"Authentic '59 medium C","shoulder":"Medium shoulders","k":2.1,"shoulderLevel":"medium","provenance":"DEALER","provenance_detail":"Dealer measurements .880/1.000 (Wildwood) and .900/1.040 (Willcutt)","source":"https://willcuttguitars.com/products/gibson-custom-shop-1959-les-paul-standard-reissue-washed-cherry-burst-murphy-lab-ultra-light-aged-gib-lpr59psl17416-used-912785","note":"Big taper: slim at the nut, fills out up the neck."},
+ {"name":"60th Anniv R9 'Carmelita' (2019)","group":"R9 family","first_in":0.87,"twelfth_in":0.97,"first_mm":22.1,"twelfth_mm":24.6,"range_first_in":null,"range_twelfth_in":null,"profile":"'59 Carmelita / 50s Rounded Medium C","shoulder":"Little to no shoulder","k":1.95,"shoulderLevel":"low","provenance":"OWNER","provenance_detail":"Owner caliper .87-.97; carve 3D-scanned from original 9 1953","source":"https://www.mylespaul.com/threads/2014-and-beyond-neck-shapes-on-r8-r9.440693/","note":"A documented real '59 carve - proof not all '59s are big."},
+ {"name":"2018 Historic '60 / R0 (factory target)","group":"R0 / R7","first_in":0.81,"twelfth_in":0.92,"first_mm":20.6,"twelfth_mm":23.4,"range_first_in":null,"range_twelfth_in":null,"profile":"'60 slim taper C","shoulder":"Low shoulders","k":1.8,"shoulderLevel":"low","provenance":"OFFICIAL","provenance_detail":"Gibson 2018 targets quoted by dealer (thegearpage)","source":"https://www.thegearpage.net/board/index.php?threads/what-is-a-slim-c-neck-profile-on-a-lp.1985556/","note":"Factory-target slim. Contrast reference."},
+ {"name":"2017 R0 (measured example)","group":"R0 / R7","first_in":0.85,"twelfth_in":0.9,"first_mm":21.6,"twelfth_mm":22.9,"range_first_in":null,"range_twelfth_in":null,"profile":"'60 slim C","shoulder":"Low shoulders","k":1.85,"shoulderLevel":"low","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/","note":""},
+ {"name":"2013 R7 Goldtop","group":"R0 / R7","first_in":0.94,"twelfth_in":1.03,"first_mm":23.9,"twelfth_mm":26.2,"range_first_in":null,"range_twelfth_in":null,"profile":"'57 baseball bat","shoulder":"Massive rounded shoulders","k":2.8,"shoulderLevel":"very full","provenance":"OWNER","provenance_detail":"Owner caliper .94 at 1st (12th reported up to ~1.03-1.1 on pre-2014 R7s - treat 12th as approximate)","source":"https://www.mylespaul.com/threads/r8-neck-thickness-through-the-years.462233/","note":"Pre-2014 R7s are the tree trunks of the Historic line."},
+ {"name":"Les Paul Standard 50s (USA)","group":"USA line","first_in":0.88,"twelfth_in":0.99,"first_mm":22.4,"twelfth_mm":25.1,"range_first_in":[0.87,0.9],"range_twelfth_in":[0.97,1.0],"profile":"Rounded 50s","shoulder":"Medium-full shoulders","k":2.05,"shoulderLevel":"medium","provenance":"OWNER","provenance_detail":"Owner .88/.99 (2019); Gibson's 2015 CS8 50s spec was .900/1.000","source":"https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/","note":"Cheapest route into a genuinely big Gibson neck."},
+ {"name":"Les Paul Standard 60s (USA)","group":"USA line","first_in":0.813,"twelfth_in":0.913,"first_mm":20.7,"twelfth_mm":23.2,"range_first_in":null,"range_twelfth_in":null,"profile":"Slim taper 60s","shoulder":"Low shoulders","k":1.8,"shoulderLevel":"low","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/neck-measurements-for-60s-necks.486043/","note":"What 'slim' means in numbers - the anti-chunk reference."},
+ {"name":"2016 LP Traditional","group":"USA line","first_in":0.84,"twelfth_in":0.982,"first_mm":21.3,"twelfth_mm":24.9,"range_first_in":null,"range_twelfth_in":null,"profile":"50s rounded (Traditional)","shoulder":"Medium shoulders","k":2.0,"shoulderLevel":"medium","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/2018-19-r8-vs-r9-necks.429991/","note":""}
+    ];
 
     const GROUP_COLORS = {
       "Vintage originals": "#d4a24e",
@@ -1145,6 +800,7 @@
 
     const state = {
       unit: "mm",
+      shapeOnly: false,
       fret: "first",
       group: "All",
       selectedModel: "Current R8 (2019+)",
@@ -1335,6 +991,11 @@
         });
       });
 
+      document.getElementById("shape-only-checkbox").addEventListener("change", (event) => {
+        state.shapeOnly = event.target.checked;
+        scheduleRefresh();
+      });
+
       ui.groupFilters.addEventListener("click", (event) => {
         const button = event.target.closest("[data-group]");
         if (!button) return;
@@ -1449,6 +1110,10 @@
       const centerX = margin.left + drawWidth / 2;
       const centerY = margin.top + drawHeight / 2;
 
+      // Determine ruler step size based on unit
+      const rulerStep = state.unit === "mm" ? 5 : 5 / 25.4; // 0.197" ≈ 5mm
+      const rulerStepMm = state.unit === "mm" ? 5 : 5 / 25.4 * 25.4;
+
       // Draw ruler grid
       ctx.strokeStyle = "rgba(110, 118, 129, 0.2)";
       ctx.lineWidth = 1 / dpr;
@@ -1457,6 +1122,7 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
 
+      let rulerValue = state.unit === "mm" ? 5 : 0.2;
       for (let mm = 5; mm <= 50; mm += 5) {
         const py = centerY - mm * scale;
         if (py >= margin.top && py <= height - margin.bottom) {
@@ -1464,7 +1130,9 @@
           ctx.moveTo(margin.left - 5, py);
           ctx.lineTo(width - margin.right + 5, py);
           ctx.stroke();
-          ctx.fillText(mm + "mm", margin.left - 15, py - 6);
+          const tickLabel = state.unit === "mm" ? rulerValue + "mm" : formatDepth(rulerValue, "in") + '"';
+          ctx.fillText(tickLabel, margin.left - 15, py - 6);
+          rulerValue += state.unit === "mm" ? 5 : 0.197;
         }
       }
 
@@ -1478,7 +1146,7 @@
       ctx.lineTo(centerX + depthPx / 2, centerY);
       ctx.stroke();
 
-      // Draw dimension arrows and label
+      // Draw dimension arrows
       const arrowSize = 8;
       ctx.fillStyle = "#58a6ff";
       const leftArrow = centerX - depthPx / 2;
@@ -1492,26 +1160,47 @@
       ctx.lineTo(rightArrow, centerY + arrowSize);
       ctx.stroke();
 
+      // Compute shoulder index for primary model
+      const halfWidthMm = fretboardWidthMm / 2;
+      const shoulderXFraction = 0.65;
+      const shoulderXNorm = shoulderXFraction; // normalized to [0, 1]
+      const kVal = model.k;
+      const shoulderFactor = Math.pow(1 - Math.pow(shoulderXNorm, kVal), 1 / kVal);
+      const shoulderDepthMm = fretboardThicknessMm + (depthMm - fretboardThicknessMm) * shoulderFactor;
+      const shoulderIndex = Math.round((shoulderDepthMm / depthMm) * 100);
+
+      // Draw depth label and shoulder index
       ctx.fillStyle = "#58a6ff";
       ctx.font = "bold 13px -apple-system, BlinkMacSystemFont";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const depthLabel = formatDepth(depthMm, "mm") + " mm";
-      ctx.fillText(depthLabel, centerX, centerY - 20);
+      const depthDisplay = state.unit === "mm" ? formatDepth(depthMm, "mm") + " mm" : formatDepth(depthMm / 25.4, "in") + '"';
+      ctx.fillText(depthDisplay, centerX, centerY - 20);
+      ctx.font = "11px -apple-system, BlinkMacSystemFont";
+      ctx.fillStyle = "#8b949e";
+      ctx.fillText("shoulder index: " + shoulderIndex + "%", centerX, centerY - 5);
 
       // Draw profiles
       const colors = models.map((m, i) => i === 0 ? "#58a6ff" : groupColor(m.group));
 
+      const shapeOnly = state.shapeOnly && models.length > 1;
+      const primaryDepthMm = depthMm;
+
       models.forEach((m, idx) => {
-        const depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
-        const width = state.fret === "first" ? 43.0 : 52.4;
+        let depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
+        const profileWidth = state.fret === "first" ? 43.0 : 52.4;
         const kVal = m.k;
         const color = colors[idx];
         const alpha = idx === 0 ? 1 : 0.4;
 
+        // Apply shape-only normalization to overlays
+        if (shapeOnly && idx > 0) {
+          depth = primaryDepthMm;
+        }
+
         // Draw fretboard
         ctx.fillStyle = `rgba(45, 164, 78, ${alpha * 0.6})`;
-        const fbWidth = width * scale;
+        const fbWidth = profileWidth * scale;
         const fbThickness = fretboardThicknessMm * scale;
         ctx.fillRect(
           centerX - fbWidth / 2,
@@ -1527,12 +1216,11 @@
         ctx.beginPath();
 
         const steps = 200;
-        const topY = centerY - depth * scale;
         for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * 2 - 1;
           const absT = Math.abs(t);
           const factor = Math.pow(1 - Math.pow(absT, kVal), 1 / kVal);
-          const x = centerX + t * (width / 2) * scale;
+          const x = centerX + t * (profileWidth / 2) * scale;
           const y = centerY - (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
           if (i === 0) {
             ctx.moveTo(x, y);
@@ -1545,12 +1233,21 @@
         // Draw bottom line
         const fbTop = centerY - fretboardThicknessMm * scale;
         ctx.beginPath();
-        ctx.moveTo(centerX - width * scale / 2, fbTop);
-        ctx.lineTo(centerX + width * scale / 2, fbTop);
+        ctx.moveTo(centerX - profileWidth * scale / 2, fbTop);
+        ctx.lineTo(centerX + profileWidth * scale / 2, fbTop);
         ctx.stroke();
       });
 
       ctx.setLineDash([]);
+
+      // Draw shape-only caption if active
+      if (shapeOnly) {
+        ctx.fillStyle = "rgba(255, 200, 100, 0.9)";
+        ctx.font = "bold 12px -apple-system, BlinkMacSystemFont";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText("SHAPE ONLY - depths normalized to " + model.name + ", size differences hidden", centerX, margin.top - 8);
+      }
 
       // Legend
       const legendHtml = models.map((m, i) => {
@@ -1559,6 +1256,10 @@
         return `<div class="legend-item"><div class="legend-color" style="background:${color};border:1px solid ${color}; opacity:${i === 0 ? 1 : 0.5};"></div> ${m.name}</div>`;
       }).join("");
       ui.legend.innerHTML = legendHtml;
+
+      // Update info panel
+      const shoulderLevelText = model.shoulderLevel ? " (" + model.shoulderLevel + ")" : "";
+      document.getElementById("cross-section-info").innerHTML = `<strong>${model.name}</strong>${shoulderLevelText} - ${model.shoulder}`;
     }
 
     function drawChunkMap() {
@@ -1594,11 +1295,15 @@
       ctx.font = "10px -apple-system, BlinkMacSystemFont";
       ctx.fillStyle = "rgba(139, 148, 158, 0.4)";
 
-      for (let taper = -2; taper <= 8; taper += 2) {
+      const taperStep = state.unit === "mm" ? 2 : 0.1;
+      const taperStart = state.unit === "mm" ? -2 : -0.2;
+      const taperEnd = state.unit === "mm" ? 8 : 0.4;
+
+      for (let taper = taperStart; taper <= taperEnd; taper += taperStep) {
         const x1 = minFirst;
-        const y1 = x1 + taper;
+        const y1 = x1 + (state.unit === "mm" ? taper : taper * 25.4);
         const x2 = maxFirst;
-        const y2 = x2 + taper;
+        const y2 = x2 + (state.unit === "mm" ? taper : taper * 25.4);
 
         if ((y1 >= minTwelfth && y1 <= maxTwelfth) || (y2 >= minTwelfth && y2 <= maxTwelfth)) {
           const px1 = toPixelX(x1);
@@ -1615,7 +1320,8 @@
           const midY = (py1 + py2) / 2;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(`taper ${taper > 0 ? '+' : ''}${taper}mm`, midX, midY - 8);
+          const taperLabel = state.unit === "mm" ? `taper ${taper > 0 ? '+' : ''}${taper}mm` : `taper ${taper > 0 ? '+' : ''}${formatDepth(taper, 'in')}"`;
+          ctx.fillText(taperLabel, midX, midY - 8);
         }
       }
 
@@ -1631,17 +1337,49 @@
       ctx.lineTo(toPixelX(maxFirst), height - margin.bottom);
       ctx.stroke();
 
-      // Draw axis labels
+      // Draw axis gridlines and labels
+      ctx.font = "11px -apple-system, BlinkMacSystemFont";
+      ctx.fillStyle = "#6e7681";
+      ctx.strokeStyle = "rgba(110, 118, 129, 0.15)";
+      ctx.lineWidth = 1 / dpr;
+      
+      const tickStep = state.unit === "mm" ? 2 : 0.05;
+      for (let tick = Math.ceil(minFirst / tickStep) * tickStep; tick <= maxFirst; tick += tickStep) {
+        const px = toPixelX(tick);
+        ctx.beginPath();
+        ctx.moveTo(px, height - margin.bottom - 3);
+        ctx.lineTo(px, height - margin.bottom + 3);
+        ctx.stroke();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
+        ctx.fillText(label, px, height - margin.bottom + 8);
+      }
+
+      for (let tick = Math.ceil(minTwelfth / tickStep) * tickStep; tick <= maxTwelfth; tick += tickStep) {
+        const py = toPixelY(tick);
+        ctx.beginPath();
+        ctx.moveTo(margin.left - 3, py);
+        ctx.lineTo(margin.left + 3, py);
+        ctx.stroke();
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
+        ctx.fillText(label, margin.left - 8, py);
+      }
+
+      // Draw axis titles
       ctx.font = "12px -apple-system, BlinkMacSystemFont";
       ctx.fillStyle = "#8b949e";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillText("Depth at 1st fret (mm)", margin.left + plotWidth / 2, height - 12);
+      const unitLabel = state.unit === "mm" ? "mm" : "in";
+      ctx.fillText(`Depth at 1st fret (${unitLabel})`, margin.left + plotWidth / 2, height - 12);
       ctx.save();
       ctx.translate(20, margin.top + plotHeight / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.textAlign = "center";
-      ctx.fillText("Depth at 12th fret (mm)", 0, 0);
+      ctx.fillText(`Depth at 12th fret (${unitLabel})`, 0, 0);
       ctx.restore();
 
       // Draw quadrant text
@@ -1664,7 +1402,6 @@
         const px = toPixelX(x);
         const py = toPixelY(y);
 
-        // Draw range if present
         if (hasRange) {
           const range1 = getRangeValue(model, "first", "mm");
           const range2 = getRangeValue(model, "twelfth", "mm");
@@ -1682,7 +1419,6 @@
           }
         }
 
-        // Draw point
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(px, py, size / dpr, 0, 2 * Math.PI);
@@ -1702,8 +1438,11 @@
         const model = state.hover;
         const x = getDepthValue(model, "first", "mm");
         const y = getDepthValue(model, "twelfth", "mm");
-        const taper = getTaper(model, "mm");
-        const text = `${model.name}\n${formatDepth(x, "mm")} mm / ${formatDepth(y, "mm")} mm\nTaper: ${formatDepth(taper, "mm")} mm\n${model.provenance}`;
+        const xDisplay = state.unit === "mm" ? formatDepth(x, "mm") + " mm" : formatDepth(x / 25.4, "in") + '"';
+        const yDisplay = state.unit === "mm" ? formatDepth(y, "mm") + " mm" : formatDepth(y / 25.4, "in") + '"';
+        const taper = getTaper(model, state.unit);
+        const taperDisplay = state.unit === "mm" ? formatDepth(taper, "mm") + " mm" : formatDepth(taper, "in") + '"';
+        const text = `${model.name}\n${xDisplay} / ${yDisplay}\nTaper: ${taperDisplay}\n${model.provenance}`;
         const lines = text.split("\n");
         ctx.font = "11px -apple-system, BlinkMacSystemFont";
         const lineHeight = 14;
@@ -1769,8 +1508,7 @@
       ctx.fillRect(0, 0, width, height);
 
       const visible = getVisibleModels();
-      const unit = state.unit;
-      const tapers = visible.map((m) => getTaper(m, unit));
+      const tapers = visible.map((m) => getTaper(m, state.unit));
       const minTaper = Math.min(0, Math.min(...tapers)) - 0.5;
       const maxTaper = Math.max(...tapers) + 0.5;
 
@@ -1794,7 +1532,7 @@
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
 
-      const step = unit === "mm" ? 1 : 0.05;
+      const step = state.unit === "mm" ? 1 : 0.05;
       for (let val = minTaper; val <= maxTaper; val += step) {
         const py = toPixelY(val);
         if (py >= margin.top && py <= height - margin.bottom) {
@@ -1803,13 +1541,14 @@
           ctx.moveTo(margin.left, py);
           ctx.lineTo(width - margin.right, py);
           ctx.stroke();
-          ctx.fillText(formatDepth(val, unit), margin.left - 8, py);
+          const label = state.unit === "mm" ? val.toFixed(0) : formatDepth(val, "in");
+          ctx.fillText(label, margin.left - 8, py);
         }
       }
 
       // Draw lines
       visible.forEach((model) => {
-        const taper = getTaper(model, unit);
+        const taper = getTaper(model, state.unit);
         const color = groupColor(model.group);
         const isSelected = model.name === state.selectedModel;
         const lineWidth = isSelected ? 3 / dpr : 1 / dpr;
@@ -1837,7 +1576,8 @@
       ctx.fillStyle = "#8b949e";
       ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      ctx.fillText(`Taper (${unit})`, margin.left - 8, margin.top - 20);
+      const unitLabel = state.unit === "mm" ? "mm" : "in";
+      ctx.fillText(`Taper (${unitLabel})`, margin.left - 8, margin.top - 20);
     }
 
     function drawRankedChart() {
@@ -1860,6 +1600,8 @@
         const badge = makeBadge(model.provenance);
 
         const nameDisplay = model.name.length > 30 ? model.name.substring(0, 27) + "..." : model.name;
+        const depthDisplay = formatDepth(depth, state.unit);
+        const unitLabel = getUnitLabel(state.unit);
 
         return `
           <div class="ranked-bar-container">
@@ -1867,7 +1609,7 @@
             <div class="ranked-bar-wrapper">
               <div class="ranked-bar-fill" style="width:${pct.toFixed(1)}%;background:${color};opacity:0.8;">
                 ${rangeHtml}
-                <span class="ranked-bar-value">${formatDepth(depth, state.unit)} ${getUnitLabel(state.unit)}</span>
+                <span class="ranked-bar-value">${depthDisplay} ${unitLabel}</span>
               </div>
             </div>
             <div class="ranked-badge">${badge}</div>
