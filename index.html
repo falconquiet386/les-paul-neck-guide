@@ -620,6 +620,46 @@
             border-color: #9e6fc4;
             color: #9e6fc4;
         }
+      #selected-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .selected-chips .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: #e6edf3;
+  }
+
+  .selected-chips .chip-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .selected-chips .chip-remove {
+    background: none;
+    border: none;
+    color: #8b949e;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .selected-chips .chip-remove:hover {
+    color: #e6edf3;
+  }
     </style>
 </head>
 
@@ -660,9 +700,11 @@
 
     <section class="section">
       <h2 class="section-title">Cross-section visualizer</h2>
-      <div class="canvas-controls">
-        <select id="cross-section-model" aria-label="Primary model"></select>
-        <div class="overlay-checkboxes" id="overlay-checkboxes" aria-label="Comparison models"></div>
+            <div class="canvas-controls">
+        <div id="selected-chips" aria-label="Selected models"></div>
+        <div id="selection-hint" style="display:none;font-size:12px;color:#8b949e;margin-top:8px;"></div>
+        <div class="overlay-checkboxes" id="overlay-checkboxes" aria-label="Model selector"></div>
+      </div>
         
       </div>
       <div id="cross-section-info" style="font-size:13px;color:#8b949e;margin:8px 0;"></div>
@@ -792,21 +834,21 @@ const MODELS = [
       AGG: "#6e7781"
     };
 
-    const state = {
+        const state = {
       unit: "mm",
       fret: "first",
       group: "All",
-      selectedModel: "Current R8 (2019+)",
-      overlays: [],
+      selected: ["Current R8 (2019+)"],
       hover: null,
       tableFilter: "",
       tableSort: { key: "first", dir: "desc" },
       reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches
     };
 
-    const ui = {
+        const ui = {
       groupFilters: document.getElementById("group-filters"),
-      modelSelect: document.getElementById("cross-section-model"),
+      chipsBox: document.getElementById("selected-chips"),
+      hint: document.getElementById("selection-hint"),
       overlayBox: document.getElementById("overlay-checkboxes"),
       rankedChart: document.getElementById("ranked-chart"),
       tableBody: document.getElementById("buyers-table-body"),
@@ -849,6 +891,12 @@ const MODELS = [
       return list;
     }
 
+        function getSelectedModels() {
+          return state.selected
+            .map((name) => MODELS.find((m) => m.name === name))
+            .filter(Boolean);
+        }
+
     function getDepth(model, fretKey, unit = state.unit) {
       const key = fretKey === "first" ? "first_" + unit : "twelfth_" + unit;
       if (unit === "mm") {
@@ -860,14 +908,6 @@ const MODELS = [
     function formatDepth(value, unit) {
       const digits = unit === "mm" ? 1 : 3;
       return Number(value).toFixed(digits).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
-    }
-
-    function getSelectedModel() {
-      return MODELS.find((model) => model.name === state.selectedModel) || MODELS[0];
-    }
-
-    function getOverlayModels() {
-      return MODELS.filter((model) => state.overlays.includes(model.name) && model.name !== state.selectedModel);
     }
 
     function groupColor(group) {
@@ -936,46 +976,46 @@ const MODEL_COLOR_MAP = {};
       }).join("");
     }
 
-    function buildModelOptions() {
-      const selected = state.selectedModel || MODELS[0].name;
-      const options = MODELS.filter((model) => {
-        if (state.group !== "All" && model.group !== state.group) return false;
-        return true;
-      }).map((model) => {
-        return `<option value="${model.name}" ${model.name === selected ? "selected" : ""}>${model.name}</option>`;
-      }).join("");
-      ui.modelSelect.innerHTML = options || "";
-      if (!ui.modelSelect.value && MODELS.length) {
-        ui.modelSelect.value = MODELS[0].name;
-        state.selectedModel = MODELS[0].name;
-      }
-    }
+        function buildModelChecks() {
+      // Build selected chips
+      const chipsHtml = state.selected
+        .map((name) => {
+          const model = MODELS.find((m) => m.name === name);
+          if (!model) return "";
+          const color = modelColor(model);
+          return `
+            <div class="chip" style="background:#161b22;border:1px solid #30363d;">
+              <span class="chip-dot" style="background:${color};"></span>
+              <span>${model.name}</span>
+              <button type="button" class="chip-remove" data-remove="${name}" aria-label="Remove ${name}">×</button>
+            </div>
+          `;
+        })
+        .join("");
+      ui.chipsBox.innerHTML = `<div class="selected-chips">${chipsHtml}</div>`;
 
-    function buildOverlayChecks() {
-      state.overlays = state.overlays.filter((name) => name !== state.selectedModel);
-
+      // Build checkboxes from visible models
       const visible = getVisibleModels();
-      const selected = new Set(state.overlays);
-      const html = visible.map((model) => {
-        const isSelected = model.name === state.selectedModel;
-        const checked = selected.has(model.name) ? "checked" : "";
-        const disabled = isSelected ? "disabled" : "";
-        const swatch = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + modelColor(model) + ';"></span>';
-        return `
-          <label class="overlay-checkbox" title="${model.name}" ${isSelected ? 'style="opacity:0.5;"' : ""}>
-            <input type="checkbox" value="${model.name}" ${checked} ${disabled}>
-            ${swatch}
-            <span>${model.name}</span>
-          </label>
-        `;
-      }).join("");
-      ui.overlayBox.innerHTML = html;
-      if (!html) {
-        ui.overlayBox.innerHTML = "";
-      }
+      const selectedSet = new Set(state.selected);
+      const html = visible
+        .map((model) => {
+          const checked = selectedSet.has(model.name) ? "checked" : "";
+          const swatch = `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${modelColor(model)};"></span>`;
+          return `
+            <label class="overlay-checkbox" title="${model.name}">
+              <input type="checkbox" value="${model.name}" ${checked}>
+              ${swatch}
+              <span>${model.name}</span>
+            </label>
+          `;
+        })
+        .join("");
+      ui.overlayBox.innerHTML = html || "";
     }
 
-    function attachSharedEvents() {
+    
+
+        function attachSharedEvents() {
       document.querySelectorAll("[data-fret]").forEach((button) => {
         button.addEventListener("click", () => {
           const fret = button.getAttribute("data-fret");
@@ -1008,24 +1048,7 @@ const MODEL_COLOR_MAP = {};
         const group = button.getAttribute("data-group");
         state.group = group;
         buildGroupFilters();
-        buildModelOptions();
-        buildOverlayChecks();
-        if (!MODELS.some((m) => m.name === state.selectedModel && (state.group === "All" || m.group === state.group))) {
-          const first = MODELS.find((m) => state.group === "All" || m.group === state.group);
-          if (first) state.selectedModel = first.name;
-        }
-        if (state.overlays.length) {
-          state.overlays = state.overlays.filter((name) => {
-            const model = MODELS.find((m) => m.name === name);
-            return model && (state.group === "All" || model.group === state.group);
-          });
-        }
-        ui.modelSelect.value = state.selectedModel;
-        scheduleRefresh();
-      });
-
-      ui.modelSelect.addEventListener("change", (event) => {
-        state.selectedModel = event.target.value;
+        buildModelChecks();
         scheduleRefresh();
       });
 
@@ -1034,14 +1057,30 @@ const MODEL_COLOR_MAP = {};
         if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") return;
         const name = target.value;
         if (target.checked) {
-          if (!state.overlays.includes(name) && state.overlays.length < 4) {
-            state.overlays.push(name);
-          } else if (target.checked && state.overlays.length >= 4) {
+          if (!state.selected.includes(name) && state.selected.length < 4) {
+            state.selected.push(name);
+            ui.hint.style.display = "none";
+            ui.hint.textContent = "";
+          } else if (target.checked && state.selected.length >= 4) {
             target.checked = false;
+            ui.hint.style.display = "block";
+            ui.hint.textContent = "Compare up to 4 models.";
           }
         } else {
-          state.overlays = state.overlays.filter((item) => item !== name);
+          state.selected = state.selected.filter((item) => item !== name);
+          ui.hint.style.display = "none";
+          ui.hint.textContent = "";
         }
+        buildModelChecks();
+        scheduleRefresh();
+      });
+
+      ui.chipsBox.addEventListener("click", (event) => {
+        const removeBtn = event.target.closest("[data-remove]");
+        if (!removeBtn) return;
+        const name = removeBtn.getAttribute("data-remove");
+        state.selected = state.selected.filter((item) => item !== name);
+        buildModelChecks();
         scheduleRefresh();
       });
 
@@ -1063,15 +1102,9 @@ const MODEL_COLOR_MAP = {};
 
     function setupUI() {
       buildGroupFilters();
-      buildModelOptions();
-      buildOverlayChecks();
+      buildModelChecks();
       attachSharedEvents();
       ui.tableFilter.value = state.tableFilter;
-      ui.modelSelect.value = state.selectedModel;
-      if (ui.modelSelect.value === "") {
-        ui.modelSelect.value = MODELS[0].name;
-        state.selectedModel = MODELS[0].name;
-      }
     }
 
     setupUI();
@@ -1097,13 +1130,15 @@ const MODEL_COLOR_MAP = {};
       ctx.fillStyle = "#0d1117";
       ctx.fillRect(0, 0, width, height);
 
-      const model = getSelectedModel();
-      const overlays = getOverlayModels();
-      const models = [model, ...overlays];
+      const models = getSelectedModels();
 
-      // Dedupe by name
-      const seen = new Set();
-      const uniqueModels = models.filter((m) => !seen.has(m.name) && seen.add(m.name));
+      // Handle 0 selected models
+      if (models.length === 0) {
+        ui.legend.innerHTML = "";
+        document.getElementById("cross-section-info").innerHTML =
+          "Select a model above to see its cross-section.";
+        return;
+      }
 
       const fretboardThicknessMm = 5.5;
       const titleAreaHeight = 40;
@@ -1116,7 +1151,7 @@ const MODEL_COLOR_MAP = {};
       let maxDepth = -Infinity;
       let maxWidth = -Infinity;
 
-      uniqueModels.forEach((m) => {
+      models.forEach((m) => {
         const depth = getDepthValue(m, state.fret, "mm");
         const width = state.fret === "first" ? 43.0 : 52.4;
         minDepth = Math.min(minDepth, fretboardThicknessMm);
@@ -1135,10 +1170,11 @@ const MODEL_COLOR_MAP = {};
       const topY = titleAreaHeight + (usableHeight - scaledDepth) / 2;
       const centerY = topY + scaledDepth;
 
-      // Compute shoulder index for primary model
-      const depthMm = getDepthValue(model, state.fret, "mm");
+      // Compute shoulder index for primary model (first in selection)
+      const primaryModel = models[0];
+      const depthMm = getDepthValue(primaryModel, state.fret, "mm");
       const shoulderXNorm = 0.65;
-      const shoulderFactor = Math.pow(1 - Math.pow(shoulderXNorm, model.k), 1 / model.k);
+      const shoulderFactor = Math.pow(1 - Math.pow(shoulderXNorm, primaryModel.k), 1 / primaryModel.k);
       const shoulderDepthMm = fretboardThicknessMm + (depthMm - fretboardThicknessMm) * shoulderFactor;
       const shoulderIndex = Math.round((shoulderDepthMm / depthMm) * 100);
 
@@ -1175,10 +1211,10 @@ const MODEL_COLOR_MAP = {};
         return path;
       };
 
-      const colors = uniqueModels.map((m) => modelColor(m));
+      const colors = models.map((m) => modelColor(m));
 
       // PHASE 1: Fill all shapes
-      uniqueModels.forEach((m, idx) => {
+      models.forEach((m, idx) => {
         const depth = getDepthValue(m, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
         const color = colors[idx];
@@ -1212,9 +1248,9 @@ const MODEL_COLOR_MAP = {};
 
       // PHASE 2: Draw delta highlight if exactly 2 models
       let deltaNote = "";
-      if (uniqueModels.length === 2) {
-        const m0 = uniqueModels[0];
-        const m1 = uniqueModels[1];
+      if (models.length === 2) {
+        const m0 = models[0];
+        const m1 = models[1];
         const depth0 = getDepthValue(m0, state.fret, "mm");
         const depth1 = getDepthValue(m1, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
@@ -1258,7 +1294,7 @@ const MODEL_COLOR_MAP = {};
       }
 
       // PHASE 3: Stroke all outlines
-      uniqueModels.forEach((m, idx) => {
+      models.forEach((m, idx) => {
         const depth = getDepthValue(m, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
         const color = colors[idx];
@@ -1325,22 +1361,33 @@ const MODEL_COLOR_MAP = {};
       ctx.fillText(scaleLabel, scaleBarX + scaleBarPx + 6, scaleBarY - 6);
 
       // Legend
-      ui.legend.innerHTML = uniqueModels.map((m, i) => {
+      ui.legend.innerHTML = models.map((m, i) => {
         const color = colors[i];
         return `<div class="legend-item"><div class="legend-color" style="background:${color};border:1px solid ${color}; opacity:1;"></div> ${m.name}</div>`;
       }).join("");
 
-      // Update info panel with depth, shoulder text, and shoulder index
-      const fretLabel = state.fret === "first" ? "1st fret" : "12th fret";
-      const depthMm_val = getDepthValue(model, state.fret, "mm");
-      const depthIn_val = depthMm_val / 25.4;
-      const depthDisplay = state.unit === "mm"
-        ? `${formatDepth(depthMm_val, "mm")} mm (${formatDepth(depthIn_val, "in")}\")`
-        : `${formatDepth(depthIn_val, "in")}\" (${formatDepth(depthMm_val, "mm")} mm)`;
-      const shoulderLevelText = model.shoulderLevel ? ` (${model.shoulderLevel})` : "";
+      // Update info panel
+      if (models.length === 1) {
+        // Single model: show detailed info with shoulder chip
+        const fretLabel = state.fret === "first" ? "1st fret" : "12th fret";
+        const depthMm_val = getDepthValue(primaryModel, state.fret, "mm");
+        const depthIn_val = depthMm_val / 25.4;
+        const depthDisplay = state.unit === "mm"
+          ? `${formatDepth(depthMm_val, "mm")} mm (${formatDepth(depthIn_val, "in")}\")`
+          : `${formatDepth(depthIn_val, "in")}\" (${formatDepth(depthMm_val, "mm")} mm)`;
+        const shoulderLevelText = primaryModel.shoulderLevel ? ` (${primaryModel.shoulderLevel})` : "";
 
-      document.getElementById("cross-section-info").innerHTML =
-        `<strong>${model.name}</strong>${shoulderLevelText} - depth at ${fretLabel}: ${depthDisplay} - shoulder: ${model.shoulder} - shoulder index: ${shoulderIndex}%${deltaNote}`;
+        document.getElementById("cross-section-info").innerHTML =
+          `<strong>${primaryModel.name}</strong>${shoulderLevelText} - depth at ${fretLabel}: ${depthDisplay} - shoulder: ${primaryModel.shoulder} - shoulder index: ${shoulderIndex}%${deltaNote}`;
+      } else if (models.length === 2) {
+        // Two models: show comparison with delta note
+        document.getElementById("cross-section-info").innerHTML =
+          `Comparing 2 models${deltaNote}`;
+      } else {
+        // 3+ models: show comparison without delta
+        document.getElementById("cross-section-info").innerHTML =
+          `Comparing ${models.length} models - select exactly 2 to see the amber difference band.`;
+      }
     }
 
         function hexToRgb(hex) {
