@@ -1138,103 +1138,157 @@ const MODELS = [
         return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
       };
 
-      // Draw shapes: fill first (for visibility), then stroke overlays, then selected on top
-      const colors = models.map((m, i) => i === 0 ? "#58a6ff" : groupColor(m.group));
+      // Helper to build a silhouette path for a model
+      const buildSilhouettePath = (m, depth, profileWidth) => {
+        const path = new Path2D();
+        const fbThickness = fretboardThicknessMm * scale;
+        const fbWidth = profileWidth * scale;
+        const steps = 200;
 
+        // Back curve
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * 2 - 1;
+          const absT = Math.abs(t);
+          const factor = Math.pow(1 - Math.pow(absT, m.k), 1 / m.k);
+          const x = centerX + t * (profileWidth / 2) * scale;
+          const y = centerY - (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
+          if (i === 0) path.moveTo(x, y);
+          else path.lineTo(x, y);
+        }
+
+        // Bottom edge
+        const fbTop = centerY - fbThickness;
+        path.lineTo(centerX + profileWidth * scale / 2, fbTop);
+        path.lineTo(centerX - profileWidth * scale / 2, fbTop);
+        path.closePath();
+
+        return path;
+      };
+
+      const colors = models.map((m, i) => i === 0 ? "#58a6ff" : groupColor(m.group));
       const shapeOnly = state.shapeOnly && models.length > 1;
       const primaryDepthMm = depthMm;
 
-      // Draw fills and strokes for overlays first
+      // PHASE 1: Fill all shapes
       models.forEach((m, idx) => {
-        if (idx > 0) {
-          let depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
-          const profileWidth = state.fret === "first" ? 43.0 : 52.4;
-          const color = colors[idx];
+        let depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
+        const profileWidth = state.fret === "first" ? 43.0 : 52.4;
+        const color = colors[idx];
 
-          if (shapeOnly) depth = primaryDepthMm;
+        if (shapeOnly) depth = primaryDepthMm;
 
-          const fbWidth = profileWidth * scale;
-          const fbThickness = fretboardThicknessMm * scale;
+        const fbWidth = profileWidth * scale;
+        const fbThickness = fretboardThicknessMm * scale;
 
-          // Fill fretboard
-          ctx.fillStyle = `rgba(45, 164, 78, 0.25)`;
-          ctx.fillRect(centerX - fbWidth / 2, centerY - fbThickness, fbWidth, fbThickness);
+        // Fill fretboard
+        ctx.fillStyle = `rgba(45, 164, 78, 0.25)`;
+        ctx.fillRect(centerX - fbWidth / 2, centerY - fbThickness, fbWidth, fbThickness);
 
-          // Fill back curve
-          ctx.fillStyle = hexToRgba(color, 0.25);
-          ctx.beginPath();
-          const steps = 200;
-          for (let i = 0; i <= steps; i++) {
-            const t = (i / steps) * 2 - 1;
-            const absT = Math.abs(t);
-            const factor = Math.pow(1 - Math.pow(absT, m.k), 1 / m.k);
-            const x = centerX + t * (profileWidth / 2) * scale;
-            const y = centerY - (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          const fbTop = centerY - fbThickness;
-          ctx.lineTo(centerX + profileWidth * scale / 2, fbTop);
-          ctx.lineTo(centerX - profileWidth * scale / 2, fbTop);
-          ctx.closePath();
-          ctx.fill();
-
-          // Stroke back curve outline for overlay
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2.5 / dpr;
-          ctx.setLineDash([]);
-          ctx.stroke();
-
-          // Stroke fretboard outline
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2.5 / dpr;
-          ctx.strokeRect(centerX - fbWidth / 2, centerY - fbThickness, fbWidth, fbThickness);
+        // Fill back curve
+        ctx.fillStyle = hexToRgba(color, 0.25);
+        ctx.beginPath();
+        const steps = 200;
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * 2 - 1;
+          const absT = Math.abs(t);
+          const factor = Math.pow(1 - Math.pow(absT, m.k), 1 / m.k);
+          const x = centerX + t * (profileWidth / 2) * scale;
+          const y = centerY - (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         }
+        const fbTop = centerY - fbThickness;
+        ctx.lineTo(centerX + profileWidth * scale / 2, fbTop);
+        ctx.lineTo(centerX - profileWidth * scale / 2, fbTop);
+        ctx.closePath();
+        ctx.fill();
       });
 
-      // Draw selected model on top with full color and thicker stroke
-      const selectedIdx = 0;
-      const m = models[selectedIdx];
-      let depth = getDepthValue(m, state.fret, "mm");
-      const profileWidth = state.fret === "first" ? 43.0 : 52.4;
-      const color = colors[selectedIdx];
+      // PHASE 2: Draw delta highlight if exactly 2 models (selected + 1 overlay)
+      let deltaNote = "";
+      if (models.length === 2) {
+        const m0 = models[0];
+        const m1 = models[1];
+        const depth0 = getDepthValue(m0, state.fret, "mm");
+        const depth1 = shapeOnly ? depth0 : getDepthValue(m1, state.fret, "mm");
+        const profileWidth = state.fret === "first" ? 43.0 : 52.4;
 
-      const fbWidth = profileWidth * scale;
-      const fbThickness = fretboardThicknessMm * scale;
+        const path0 = buildSilhouettePath(m0, depth0, profileWidth);
+        const path1 = buildSilhouettePath(m1, depth1, profileWidth);
 
-      // Fill fretboard (selected)
-      ctx.fillStyle = `rgba(45, 164, 78, 0.25)`;
-      ctx.fillRect(centerX - fbWidth / 2, centerY - fbThickness, fbWidth, fbThickness);
+        // Create offscreen canvas for XOR
+        const offCanvas = document.createElement("canvas");
+        offCanvas.width = width;
+        offCanvas.height = height;
+        const offCtx = offCanvas.getContext("2d");
 
-      // Fill and stroke selected back curve
-      ctx.fillStyle = hexToRgba(color, 0.25);
-      ctx.beginPath();
-      const steps = 200;
-      for (let i = 0; i <= steps; i++) {
-        const t = (i / steps) * 2 - 1;
-        const absT = Math.abs(t);
-        const factor = Math.pow(1 - Math.pow(absT, m.k), 1 / m.k);
-        const x = centerX + t * (profileWidth / 2) * scale;
-        const y = centerY - (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        // Draw path0 in white
+        offCtx.fillStyle = "#ffffff";
+        offCtx.fill(path0);
+
+        // Draw path1 with XOR to get the symmetric difference
+        offCtx.globalCompositeOperation = "xor";
+        offCtx.fillStyle = "#ffffff";
+        offCtx.fill(path1);
+
+        // Create delta mask and tint it amber
+        const deltaCanvas = document.createElement("canvas");
+        deltaCanvas.width = width;
+        deltaCanvas.height = height;
+        const deltaCtx = deltaCanvas.getContext("2d");
+
+        // Copy offscreen to delta canvas
+        deltaCtx.drawImage(offCanvas, 0, 0);
+
+        // Apply amber tint via globalCompositeOperation
+        deltaCtx.globalCompositeOperation = "source-in";
+        deltaCtx.fillStyle = "rgba(255, 179, 0, 0.45)";
+        deltaCtx.fillRect(0, 0, width, height);
+
+        // Draw the delta mask onto the main canvas
+        ctx.drawImage(deltaCanvas, 0, 0);
+
+        deltaNote = " - amber shows where the two shapes differ";
       }
-      const fbTop = centerY - fbThickness;
-      ctx.lineTo(centerX + profileWidth * scale / 2, fbTop);
-      ctx.lineTo(centerX - profileWidth * scale / 2, fbTop);
-      ctx.closePath();
-      ctx.fill();
 
-      // Stroke selected outline
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3 / dpr;
-      ctx.setLineDash([]);
-      ctx.stroke();
+      // PHASE 3: Stroke all outlines
+      models.forEach((m, idx) => {
+        let depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
+        const profileWidth = state.fret === "first" ? 43.0 : 52.4;
+        const color = colors[idx];
 
-      // Stroke fretboard outline
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3 / dpr;
-      ctx.strokeRect(centerX - fbWidth / 2, centerY - fbThickness, fbWidth, fbThickness);
+        if (shapeOnly) depth = primaryDepthMm;
+
+        const fbWidth = profileWidth * scale;
+        const fbThickness = fretboardThicknessMm * scale;
+
+        ctx.setLineDash([]);
+
+        // Stroke back curve outline
+        ctx.strokeStyle = color;
+        ctx.lineWidth = idx === 0 ? 3 / dpr : 2.5 / dpr;
+        ctx.beginPath();
+        const steps = 200;
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * 2 - 1;
+          const absT = Math.abs(t);
+          const factor = Math.pow(1 - Math.pow(absT, m.k), 1 / m.k);
+          const x = centerX + t * (profileWidth / 2) * scale;
+          const y = centerY - (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        const fbTop = centerY - fbThickness;
+        ctx.lineTo(centerX + profileWidth * scale / 2, fbTop);
+        ctx.lineTo(centerX - profileWidth * scale / 2, fbTop);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Stroke fretboard outline
+        ctx.strokeStyle = color;
+        ctx.lineWidth = idx === 0 ? 3 / dpr : 2.5 / dpr;
+        ctx.strokeRect(centerX - fbWidth / 2, centerY - fbThickness, fbWidth, fbThickness);
+      });
 
       ctx.setLineDash([]);
 
@@ -1306,7 +1360,7 @@ const MODELS = [
       const shoulderLevelText = model.shoulderLevel ? ` (${model.shoulderLevel})` : "";
 
       document.getElementById("cross-section-info").innerHTML =
-        `<strong>${model.name}</strong>${shoulderLevelText} - depth at ${fretLabel}: ${depthDisplay} - shoulder: ${model.shoulder} - shoulder index: ${shoulderIndex}%`;
+        `<strong>${model.name}</strong>${shoulderLevelText} - depth at ${fretLabel}: ${depthDisplay} - shoulder: ${model.shoulder} - shoulder index: ${shoulderIndex}%${deltaNote}`;
     }
 
     function drawChunkMap() {
