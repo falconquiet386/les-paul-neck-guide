@@ -1111,7 +1111,7 @@ const MODELS = [
       const centerY = margin.top + drawHeight / 2;
 
       // Determine ruler step size based on unit
-      const rulerStep = state.unit === "mm" ? 5 : 5 / 25.4; // 0.197" ≈ 5mm
+      const rulerStep = state.unit === "mm" ? 5 : 5 / 25.4;
       const rulerStepMm = state.unit === "mm" ? 5 : 5 / 25.4 * 25.4;
 
       // Draw ruler grid
@@ -1125,7 +1125,7 @@ const MODELS = [
       let rulerValue = state.unit === "mm" ? 5 : 0.2;
       for (let mm = 5; mm <= 50; mm += 5) {
         const py = centerY - mm * scale;
-        if (py >= margin.top && py <= height - margin.bottom) {
+        if (py >= margin.top + 14 && py <= height - margin.bottom - 14) {
           ctx.beginPath();
           ctx.moveTo(margin.left - 5, py);
           ctx.lineTo(width - margin.right + 5, py);
@@ -1163,7 +1163,7 @@ const MODELS = [
       // Compute shoulder index for primary model
       const halfWidthMm = fretboardWidthMm / 2;
       const shoulderXFraction = 0.65;
-      const shoulderXNorm = shoulderXFraction; // normalized to [0, 1]
+      const shoulderXNorm = shoulderXFraction;
       const kVal = model.k;
       const shoulderFactor = Math.pow(1 - Math.pow(shoulderXNorm, kVal), 1 / kVal);
       const shoulderDepthMm = fretboardThicknessMm + (depthMm - fretboardThicknessMm) * shoulderFactor;
@@ -1243,10 +1243,21 @@ const MODELS = [
       // Draw shape-only caption if active
       if (shapeOnly) {
         ctx.fillStyle = "rgba(255, 200, 100, 0.9)";
-        ctx.font = "bold 12px -apple-system, BlinkMacSystemFont";
+        const captionY = margin.top - 12;
+        const caption = "SHAPE ONLY - depths normalized to " + model.name;
+        ctx.font = "bold 10px -apple-system, BlinkMacSystemFont";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        ctx.fillText("SHAPE ONLY - depths normalized to " + model.name + ", size differences hidden", centerX, margin.top - 8);
+        const captionWidth = ctx.measureText(caption).width;
+        const availableWidth = width - margin.left - margin.right - 16;
+        if (captionWidth > availableWidth) {
+          const line1 = "SHAPE ONLY - normalized to";
+          const line2 = model.name.length > 20 ? model.name.substring(0, 17) + "..." : model.name;
+          ctx.fillText(line1, centerX, captionY - 2);
+          ctx.fillText(line2, centerX, captionY + 10);
+        } else {
+          ctx.fillText(caption, centerX, captionY);
+        }
       }
 
       // Legend
@@ -1337,35 +1348,48 @@ const MODELS = [
       ctx.lineTo(toPixelX(maxFirst), height - margin.bottom);
       ctx.stroke();
 
-      // Draw axis gridlines and labels
+      // Adaptive x-axis tick spacing
       ctx.font = "11px -apple-system, BlinkMacSystemFont";
       ctx.fillStyle = "#6e7681";
       ctx.strokeStyle = "rgba(110, 118, 129, 0.15)";
       ctx.lineWidth = 1 / dpr;
       
       const tickStep = state.unit === "mm" ? 2 : 0.05;
+      const minPixelSpacing = width < 500 ? 50 : 40;
+      let lastLabelX = -Infinity;
+
       for (let tick = Math.ceil(minFirst / tickStep) * tickStep; tick <= maxFirst; tick += tickStep) {
         const px = toPixelX(tick);
         ctx.beginPath();
         ctx.moveTo(px, height - margin.bottom - 3);
         ctx.lineTo(px, height - margin.bottom + 3);
         ctx.stroke();
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
-        ctx.fillText(label, px, height - margin.bottom + 8);
+        
+        if (px - lastLabelX >= minPixelSpacing) {
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
+          ctx.fillText(label, px, height - margin.bottom + 8);
+          lastLabelX = px;
+        }
       }
 
+      // Adaptive y-axis tick spacing
+      let lastLabelY = -Infinity;
       for (let tick = Math.ceil(minTwelfth / tickStep) * tickStep; tick <= maxTwelfth; tick += tickStep) {
         const py = toPixelY(tick);
         ctx.beginPath();
         ctx.moveTo(margin.left - 3, py);
         ctx.lineTo(margin.left + 3, py);
         ctx.stroke();
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
-        ctx.fillText(label, margin.left - 8, py);
+        
+        if (lastLabelY - py >= minPixelSpacing) {
+          ctx.textAlign = "right";
+          ctx.textBaseline = "middle";
+          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
+          ctx.fillText(label, margin.left - 8, py);
+          lastLabelY = py;
+        }
       }
 
       // Draw axis titles
@@ -1526,13 +1550,16 @@ const MODELS = [
       ctx.lineTo(margin.left, height - margin.bottom);
       ctx.stroke();
 
-      // Draw gridlines and labels
+      // Draw gridlines and adaptive labels
       ctx.font = "11px -apple-system, BlinkMacSystemFont";
       ctx.fillStyle = "#6e7681";
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
 
       const step = state.unit === "mm" ? 1 : 0.05;
+      const minPixelSpacing = width < 500 ? 45 : 35;
+      let lastLabelY = -Infinity;
+
       for (let val = minTaper; val <= maxTaper; val += step) {
         const py = toPixelY(val);
         if (py >= margin.top && py <= height - margin.bottom) {
@@ -1541,8 +1568,12 @@ const MODELS = [
           ctx.moveTo(margin.left, py);
           ctx.lineTo(width - margin.right, py);
           ctx.stroke();
-          const label = state.unit === "mm" ? val.toFixed(0) : formatDepth(val, "in");
-          ctx.fillText(label, margin.left - 8, py);
+          
+          if (lastLabelY - py >= minPixelSpacing) {
+            const label = state.unit === "mm" ? val.toFixed(0) : formatDepth(val, "in");
+            ctx.fillText(label, margin.left - 8, py);
+            lastLabelY = py;
+          }
         }
       }
 
