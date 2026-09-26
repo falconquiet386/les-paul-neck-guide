@@ -663,10 +663,7 @@
       <div class="canvas-controls">
         <select id="cross-section-model" aria-label="Primary model"></select>
         <div class="overlay-checkboxes" id="overlay-checkboxes" aria-label="Comparison models"></div>
-        <label class="overlay-checkbox" style="margin-left: auto;">
-          <input type="checkbox" id="shape-only-checkbox">
-          <span>Shape only (normalize depth)</span>
-        </label>
+        
       </div>
       <div id="cross-section-info" style="font-size:13px;color:#8b949e;margin:8px 0;"></div>
       <canvas id="cross-section-canvas" width="980" height="440"></canvas>
@@ -675,17 +672,9 @@
 
     </section>
 
-    <section class="section">
-      <h2 class="section-title">Chunk Map</h2>
-      <canvas id="chunk-map-canvas" width="980" height="440"></canvas>
-      <div class="canvas-note">Depth at the 1st fret versus the 12th fret. The diagonal guides are iso-taper lines.</div>
-    </section>
 
-    <section class="section">
-      <h2 class="section-title">Taper chart</h2>
-      <canvas id="taper-chart-canvas" width="980" height="420"></canvas>
-      <div class="taper-chart-info">Steeper lines mean more taper from the nut to the 12th fret.</div>
-    </section>
+
+
 
     <section class="section">
       <h2 class="section-title">Ranked by selected measure</h2>
@@ -693,7 +682,7 @@
     </section>
 
     <section class="section">
-      <h2 class="section-title">Buyers table</h2>
+      <h2 class="section-title">Measurements table</h2>
       <div class="table-filter-wrapper">
         <input id="table-filter" class="table-filter" type="text" placeholder="Filter models or profiles" aria-label="Filter models">
       </div>
@@ -701,16 +690,16 @@
         <table aria-label="Gibson Les Paul buyer's guide">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Group</th>
-              <th>1st fret</th>
-              <th>12th fret</th>
-              <th>Taper</th>
-              <th>Profile</th>
-              <th>Shoulder</th>
-              <th>Provenance</th>
-              <th>Buyer note</th>
-              <th>Source</th>
+              <th data-sort-key="name" style="cursor:pointer;user-select:none;">Name</th>
+              <th data-sort-key="group" style="cursor:pointer;user-select:none;">Group</th>
+              <th data-sort-key="first" style="cursor:pointer;user-select:none;">1st fret</th>
+              <th data-sort-key="twelfth" style="cursor:pointer;user-select:none;">12th fret</th>
+              <th data-sort-key="taper" style="cursor:pointer;user-select:none;">Taper</th>
+              <th data-sort-key="profile" style="cursor:pointer;user-select:none;">Profile</th>
+              <th data-sort-key="shoulder" style="cursor:pointer;user-select:none;">Shoulder</th>
+              <th data-sort-key="provenance" style="cursor:pointer;user-select:none;">Provenance</th>
+              <th data-sort-key="note" style="cursor:pointer;user-select:none;">Buyer note</th>
+              <th data-sort-key="source" style="cursor:pointer;user-select:none;">Source</th>
             </tr>
           </thead>
           <tbody id="buyers-table-body"></tbody>
@@ -778,7 +767,12 @@ const MODELS = [
  {"name":"2013 R7 Goldtop","group":"R0 / R7","first_in":0.94,"twelfth_in":1.03,"first_mm":23.9,"twelfth_mm":26.2,"range_first_in":null,"range_twelfth_in":null,"profile":"'57 baseball bat","shoulder":"Massive rounded shoulders","k":2.8,"shoulderLevel":"very full","provenance":"OWNER","provenance_detail":"Owner caliper .94 at 1st (12th reported up to ~1.03-1.1 on pre-2014 R7s - treat 12th as approximate)","source":"https://www.mylespaul.com/threads/r8-neck-thickness-through-the-years.462233/","note":"Pre-2014 R7s are the tree trunks of the Historic line."},
  {"name":"Les Paul Standard 50s (USA)","group":"USA line","first_in":0.88,"twelfth_in":0.99,"first_mm":22.4,"twelfth_mm":25.1,"range_first_in":[0.87,0.9],"range_twelfth_in":[0.97,1.0],"profile":"Rounded 50s","shoulder":"Medium-full shoulders","k":2.05,"shoulderLevel":"medium","provenance":"OWNER","provenance_detail":"Owner .88/.99 (2019); Gibson's 2015 CS8 50s spec was .900/1.000","source":"https://www.mylespaul.com/threads/1st-fret-neck-depth-a-neck-thickness-thread.446208/","note":"Cheapest route into a genuinely big Gibson neck."},
  {"name":"Les Paul Standard 60s (USA)","group":"USA line","first_in":0.813,"twelfth_in":0.913,"first_mm":20.7,"twelfth_mm":23.2,"range_first_in":null,"range_twelfth_in":null,"profile":"Slim taper 60s","shoulder":"Low shoulders","k":1.8,"shoulderLevel":"low","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/neck-measurements-for-60s-necks.486043/","note":"What 'slim' means in numbers - the anti-chunk reference."},
- {"name":"2016 LP Traditional","group":"USA line","first_in":0.84,"twelfth_in":0.982,"first_mm":21.3,"twelfth_mm":24.9,"range_first_in":null,"range_twelfth_in":null,"profile":"50s rounded (Traditional)","shoulder":"Medium shoulders","k":2.0,"shoulderLevel":"medium","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/2018-19-r8-vs-r9-necks.429991/","note":""}
+ {"name":"2016 LP Traditional","group":"USA line","first_in":0.84,"twelfth_in":0.982,"first_mm":21.3,"twelfth_mm":24.9,"range_first_in":null,"range_twelfth_in":null,"profile":"50s rounded (Traditional)","shoulder":"Medium shoulders","k":2.0,"shoulderLevel":"medium","provenance":"OWNER","provenance_detail":"Owner caliper measurement (mylespaul)","source":"https://www.mylespaul.com/threads/2018-19-r8-vs-r9-necks.429991/","note":""},
+{"name":"Current R7 Goldtop (2019+)","group":"R0 / R7","first_in":0.9,"twelfth_in":1.01,"first_mm":22.9,"twelfth_mm":25.7,"range_first_in":[0.9,0.92],"range_twelfth_in":[1.0,1.02],"profile":"Chunky rounded '50s C","shoulder":"Full rounded shoulders","k":2.05,"shoulderLevel":"full","provenance":"DEALER","provenance_detail":"Wildwood calipers on current-production Murphy Lab R7s (.900-.920 1st)","source":"https://wildwoodguitars.com/products/wildwood-spec-1957-les-paul-standard-heavy-aged-4","note":"Current R7 runs bigger than current R8/R9 averages."},
+{"name":"1954 LP Custom RI (Wildwood Spec '21)","group":"LP Custom","first_in":0.8,"twelfth_in":0.89,"first_mm":20.3,"twelfth_mm":22.6,"profile":"Medium C - slim for a '54","shoulder":"Low shoulder","k":1.9,"shoulderLevel":"low","provenance":"DEALER","provenance_detail":"Wildwood calipers, 2021 Murphy Lab '54 Custom","source":"https://wildwoodguitars.com/products/wwcongb41010-2021-ww-spec-54-les-paul-custom-ml-heavy-aged","note":"'54 Custom reissues run surprisingly slim - nothing like the '54 goldtop baseball bat."},
+{"name":"True Historic '57 Custom (2015-16)","group":"LP Custom","first_in":0.89,"twelfth_in":1.01,"first_mm":22.6,"twelfth_mm":25.7,"profile":"Authentic '57 rounded C","shoulder":"Medium-full rounded shoulder","k":2.0,"shoulderLevel":"medium","provenance":"DEALER","provenance_detail":"Wildwood calipers on a True Historic 1957 Les Paul Custom Reissue","source":"https://wildwoodguitars.com/product/75194/true-historic-1957-les-paul-custom-reissue","note":"Hand-carved TH line, expect spread."},
+{"name":"2001 '57 Custom 'Black Beauty'","group":"LP Custom","first_in":0.92,"twelfth_in":1.015,"first_mm":23.4,"twelfth_mm":25.8,"profile":"Big rounded '50s C","shoulder":"Full rounded shoulders","k":2.0,"shoulderLevel":"full","provenance":"OWNER","provenance_detail":"Owner caliper list (vguitarforums neck-size thread), 2001 example","source":"https://www.vguitarforums.com/smf/index.php?topic=18114.0","note":"Early-2000s Customs ran big - this is what people mean by fat Black Beauty necks."},
+{"name":"1968 LP Custom RI (current)","group":"LP Custom","first_in":0.82,"twelfth_in":0.96,"first_mm":20.8,"twelfth_mm":24.4,"profile":"'68 slim-medium C","shoulder":"Low shoulder","k":1.9,"shoulderLevel":"low","provenance":"DEALER","provenance_detail":"Wildwood calipers, current-production Les Paul Custom","source":"https://wildwoodguitars.com/products/gibson-custom-shop-les-paul-custom","note":"Today's production Custom is the '68 style - noticeably slimmer than '57-style Customs."}
     ];
 
     const GROUP_COLORS = {
@@ -800,13 +794,13 @@ const MODELS = [
 
     const state = {
       unit: "mm",
-      shapeOnly: false,
       fret: "first",
       group: "All",
       selectedModel: "Current R8 (2019+)",
       overlays: [],
       hover: null,
       tableFilter: "",
+      tableSort: { key: "first", dir: "desc" },
       reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches
     };
 
@@ -818,12 +812,8 @@ const MODELS = [
       tableBody: document.getElementById("buyers-table-body"),
       tableFilter: document.getElementById("table-filter"),
       legend: document.getElementById("cross-section-legend"),
-      chunkCanvas: document.getElementById("chunk-map-canvas"),
-      taperCanvas: document.getElementById("taper-chart-canvas"),
       crossCanvas: document.getElementById("cross-section-canvas"),
-      crossCtx: document.getElementById("cross-section-canvas").getContext("2d"),
-      chunkCtx: document.getElementById("chunk-map-canvas").getContext("2d"),
-      taperCtx: document.getElementById("taper-chart-canvas").getContext("2d")
+      crossCtx: document.getElementById("cross-section-canvas").getContext("2d")
     };
 
     function clamp(value, min, max) {
@@ -882,6 +872,19 @@ const MODELS = [
 
     function groupColor(group) {
       return GROUP_COLORS[group] || "#8b949e";
+    }
+
+function modelColor(model) {
+      const palette = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+        "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5",
+        "#c49c94", "#f7b6d2", "#c7c7c7", "#dbbd22", "#9edae5",
+        "#393b79", "#5254a3", "#636363", "#b5cf6b", "#de9ed6",
+        "#756bb1", "#d6616b", "#ad494a", "#8ca252", "#6d904f"
+      ];
+      const idx = MODELS.indexOf(model) % palette.length;
+      return palette[idx];
     }
 
     function provenanceBadgeClass(provenance) {
@@ -949,7 +952,7 @@ const MODELS = [
       const selected = new Set(state.overlays);
       const html = visible.map((model) => {
         const checked = selected.has(model.name) ? "checked" : "";
-        const swatch = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + groupColor(model.group) + ';"></span>';
+        const swatch = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + modelColor(model) + ';"></span>';
         return `
           <label class="overlay-checkbox" title="${model.name}">
             <input type="checkbox" value="${model.name}" ${checked}>
@@ -989,11 +992,6 @@ const MODELS = [
           });
           scheduleRefresh();
         });
-      });
-
-      document.getElementById("shape-only-checkbox").addEventListener("change", (event) => {
-        state.shapeOnly = event.target.checked;
-        scheduleRefresh();
       });
 
       ui.groupFilters.addEventListener("click", (event) => {
@@ -1060,6 +1058,7 @@ const MODELS = [
       buildModelOptions();
       buildOverlayChecks();
       attachSharedEvents();
+      setupTableSort();
       ui.tableFilter.value = state.tableFilter;
       ui.modelSelect.value = state.selectedModel;
       if (ui.modelSelect.value === "") {
@@ -1107,7 +1106,7 @@ const MODELS = [
       let maxWidth = -Infinity;
 
       models.forEach((m) => {
-        const depth = state.shapeOnly ? (m === model ? getDepthValue(m, state.fret, "mm") : getDepthValue(model, state.fret, "mm")) : getDepthValue(m, state.fret, "mm");
+        const depth = getDepthValue(m, state.fret, "mm");
         const width = state.fret === "first" ? 43.0 : 52.4;
         minDepth = Math.min(minDepth, fretboardThicknessMm);
         maxDepth = Math.max(maxDepth, depth);
@@ -1165,17 +1164,13 @@ const MODELS = [
         return path;
       };
 
-      const colors = models.map((m, i) => i === 0 ? "#58a6ff" : groupColor(m.group));
-      const shapeOnly = state.shapeOnly && models.length > 1;
-      const primaryDepthMm = depthMm;
+      const colors = models.map((m) => modelColor(m));
 
       // PHASE 1: Fill all shapes
       models.forEach((m, idx) => {
-        let depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
+        const depth = getDepthValue(m, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
         const color = colors[idx];
-
-        if (shapeOnly) depth = primaryDepthMm;
 
         const fbWidth = profileWidth * scale;
         const fbThickness = fretboardThicknessMm * scale;
@@ -1210,7 +1205,7 @@ const MODELS = [
         const m0 = models[0];
         const m1 = models[1];
         const depth0 = getDepthValue(m0, state.fret, "mm");
-        const depth1 = shapeOnly ? depth0 : getDepthValue(m1, state.fret, "mm");
+        const depth1 = getDepthValue(m1, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
 
         const path0 = buildSilhouettePath(m0, depth0, profileWidth);
@@ -1253,11 +1248,9 @@ const MODELS = [
 
       // PHASE 3: Stroke all outlines
       models.forEach((m, idx) => {
-        let depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
+        const depth = getDepthValue(m, state.fret, "mm");
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
         const color = colors[idx];
-
-        if (shapeOnly) depth = primaryDepthMm;
 
         const fbWidth = profileWidth * scale;
         const fbThickness = fretboardThicknessMm * scale;
@@ -1291,30 +1284,6 @@ const MODELS = [
       });
 
       ctx.setLineDash([]);
-
-      // Draw shape-only banner if active
-      if (shapeOnly) {
-        ctx.fillStyle = "rgba(255, 200, 100, 0.9)";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-
-        const availableWidth = width - 24;
-        const banner = `SHAPE ONLY - depths normalized to ${model.name}`;
-
-        ctx.font = "bold 11px -apple-system, BlinkMacSystemFont";
-        let fontSize = 11;
-        while (fontSize > 8 && ctx.measureText(banner).width > availableWidth) {
-          fontSize -= 1;
-          ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont`;
-        }
-
-        if (ctx.measureText(banner).width <= availableWidth) {
-          ctx.fillText(banner, width / 2, 6);
-        } else {
-          ctx.fillText("SHAPE ONLY - depths normalized", width / 2, 6);
-          ctx.fillText(`to ${model.name}`, width / 2, 6 + fontSize + 2);
-        }
-      }
 
       // Draw scale bar at bottom-left
       const scaleBarMm = state.unit === "mm" ? 10 : 12.7;
@@ -1363,345 +1332,12 @@ const MODELS = [
         `<strong>${model.name}</strong>${shoulderLevelText} - depth at ${fretLabel}: ${depthDisplay} - shoulder: ${model.shoulder} - shoulder index: ${shoulderIndex}%${deltaNote}`;
     }
 
-    function drawChunkMap() {
-      const canvas = ui.chunkCanvas;
-      const ctx = ui.chunkCtx;
-      const { width, height, dpr } = resizeCanvas(canvas);
-
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "#0d1117";
-      ctx.fillRect(0, 0, width, height);
-
-      const visible = getVisibleModels();
-      const margin = { top: 40, right: 40, bottom: 60, left: 60 };
-      const plotWidth = width - margin.left - margin.right;
-      const plotHeight = height - margin.top - margin.bottom;
-
-      const allFirst = visible.map((m) => getDepthValue(m, "first", "mm"));
-      const allTwelfth = visible.map((m) => getDepthValue(m, "twelfth", "mm"));
-      const minFirst = Math.min(...allFirst) - 1;
-      const maxFirst = Math.max(...allFirst) + 1;
-      const minTwelfth = Math.min(...allTwelfth) - 1;
-      const maxTwelfth = Math.max(...allTwelfth) + 1;
-
-      const scaleX = plotWidth / (maxFirst - minFirst);
-      const scaleY = plotHeight / (maxTwelfth - minTwelfth);
-
-      const toPixelX = (mm) => margin.left + (mm - minFirst) * scaleX;
-      const toPixelY = (mm) => height - margin.bottom - (mm - minTwelfth) * scaleY;
-
-      // Draw iso-taper guide lines
-      ctx.strokeStyle = "rgba(139, 148, 158, 0.15)";
-      ctx.lineWidth = 1 / dpr;
-      ctx.font = "10px -apple-system, BlinkMacSystemFont";
-      ctx.fillStyle = "rgba(139, 148, 158, 0.4)";
-
-      const taperStep = state.unit === "mm" ? 2 : 0.1;
-      const taperStart = state.unit === "mm" ? -2 : -0.2;
-      const taperEnd = state.unit === "mm" ? 8 : 0.4;
-
-      for (let taper = taperStart; taper <= taperEnd; taper += taperStep) {
-        const x1 = minFirst;
-        const y1 = x1 + (state.unit === "mm" ? taper : taper * 25.4);
-        const x2 = maxFirst;
-        const y2 = x2 + (state.unit === "mm" ? taper : taper * 25.4);
-
-        if ((y1 >= minTwelfth && y1 <= maxTwelfth) || (y2 >= minTwelfth && y2 <= maxTwelfth)) {
-          const px1 = toPixelX(x1);
-          const py1 = toPixelY(y1);
-          const px2 = toPixelX(x2);
-          const py2 = toPixelY(y2);
-
-          ctx.beginPath();
-          ctx.moveTo(px1, py1);
-          ctx.lineTo(px2, py2);
-          ctx.stroke();
-
-          const midX = (px1 + px2) / 2;
-          const midY = (py1 + py2) / 2;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          const taperLabel = state.unit === "mm" ? `taper ${taper > 0 ? '+' : ''}${taper}mm` : `taper ${taper > 0 ? '+' : ''}${formatDepth(taper, 'in')}"`;
-          ctx.fillText(taperLabel, midX, midY - 8);
-        }
-      }
-
-      // Draw axes
-      ctx.strokeStyle = "#30363d";
-      ctx.lineWidth = 1 / dpr;
-      ctx.beginPath();
-      ctx.moveTo(margin.left, toPixelY(minTwelfth));
-      ctx.lineTo(margin.left, toPixelY(maxTwelfth));
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(toPixelX(minFirst), height - margin.bottom);
-      ctx.lineTo(toPixelX(maxFirst), height - margin.bottom);
-      ctx.stroke();
-
-      // Adaptive x-axis tick spacing
-      ctx.font = "11px -apple-system, BlinkMacSystemFont";
-      ctx.fillStyle = "#6e7681";
-      ctx.strokeStyle = "rgba(110, 118, 129, 0.15)";
-      ctx.lineWidth = 1 / dpr;
-      
-      const tickStep = state.unit === "mm" ? 2 : 0.05;
-      const minPixelSpacing = width < 500 ? 50 : 40;
-      let lastLabelX = -Infinity;
-
-      for (let tick = Math.ceil(minFirst / tickStep) * tickStep; tick <= maxFirst; tick += tickStep) {
-        const px = toPixelX(tick);
-        ctx.beginPath();
-        ctx.moveTo(px, height - margin.bottom - 3);
-        ctx.lineTo(px, height - margin.bottom + 3);
-        ctx.stroke();
-        
-        if (px - lastLabelX >= minPixelSpacing) {
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
-          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick / 25.4, "in");
-          ctx.fillText(label, px, height - margin.bottom + 8);
-          lastLabelX = px;
-        }
-      }
-
-      // Adaptive y-axis tick spacing
-      let lastLabelY = -Infinity;
-      for (let tick = Math.ceil(minTwelfth / tickStep) * tickStep; tick <= maxTwelfth; tick += tickStep) {
-        const py = toPixelY(tick);
-        ctx.beginPath();
-        ctx.moveTo(margin.left - 3, py);
-        ctx.lineTo(margin.left + 3, py);
-        ctx.stroke();
-        
-        if (lastLabelY - py >= minPixelSpacing) {
-          ctx.textAlign = "right";
-          ctx.textBaseline = "middle";
-          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick / 25.4, "in");
-          ctx.fillText(label, margin.left - 8, py);
-          lastLabelY = py;
-        }
-      }
-
-      // Draw axis titles
-      ctx.font = "12px -apple-system, BlinkMacSystemFont";
-      ctx.fillStyle = "#8b949e";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      const unitLabel = state.unit === "mm" ? "mm" : "in";
-      ctx.fillText(`Depth at 1st fret (${unitLabel})`, margin.left + plotWidth / 2, height - 12);
-      ctx.save();
-      ctx.translate(20, margin.top + plotHeight / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.textAlign = "center";
-      ctx.fillText(`Depth at 12th fret (${unitLabel})`, 0, 0);
-      ctx.restore();
-
-      // Draw quadrant text
-      ctx.font = "11px -apple-system, BlinkMacSystemFont";
-      ctx.fillStyle = "rgba(139, 148, 158, 0.3)";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("chunky everywhere", toPixelX(maxFirst - 2), toPixelY(maxTwelfth - 1));
-      ctx.fillText("slim", toPixelX(minFirst + 2), toPixelY(minTwelfth + 1));
-      ctx.fillText("slim at nut,\nfills up", toPixelX(minFirst + 2), toPixelY(maxTwelfth - 1));
-
-      // Draw data points
-      visible.forEach((model) => {
-        const x = getDepthValue(model, "first", "mm");
-        const y = getDepthValue(model, "twelfth", "mm");
-        const hasRange = model.range_first_in !== null;
-        const color = groupColor(model.group);
-        const size = hasRange ? 7 : 5;
-
-        const px = toPixelX(x);
-        const py = toPixelY(y);
-
-        if (hasRange) {
-          const range1 = getRangeValue(model, "first", "mm");
-          const range2 = getRangeValue(model, "twelfth", "mm");
-          if (range1 && range2) {
-            ctx.strokeStyle = `rgba(${hexToRgb(color).join(', ')}, 0.3)`;
-            ctx.lineWidth = 1 / dpr;
-            ctx.beginPath();
-            ctx.moveTo(toPixelX(range1[0]), py);
-            ctx.lineTo(toPixelX(range1[1]), py);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(px, toPixelY(range2[0]));
-            ctx.lineTo(px, toPixelY(range2[1]));
-            ctx.stroke();
-          }
-        }
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(px, py, size / dpr, 0, 2 * Math.PI);
-        ctx.fill();
-
-        if (state.hover && state.hover.name === model.name) {
-          ctx.strokeStyle = "#58a6ff";
-          ctx.lineWidth = 2 / dpr;
-          ctx.beginPath();
-          ctx.arc(px, py, (size + 4) / dpr, 0, 2 * Math.PI);
-          ctx.stroke();
-        }
-      });
-
-      // Tooltip
-      if (state.hover) {
-        const model = state.hover;
-        const x = getDepthValue(model, "first", "mm");
-        const y = getDepthValue(model, "twelfth", "mm");
-        const xDisplay = state.unit === "mm" ? formatDepth(x, "mm") + " mm" : formatDepth(x / 25.4, "in") + '"';
-        const yDisplay = state.unit === "mm" ? formatDepth(y, "mm") + " mm" : formatDepth(y / 25.4, "in") + '"';
-        const taper = getTaper(model, state.unit);
-        const taperDisplay = state.unit === "mm" ? formatDepth(taper, "mm") + " mm" : formatDepth(taper, "in") + '"';
-        const text = `${model.name}\n${xDisplay} / ${yDisplay}\nTaper: ${taperDisplay}\n${model.provenance}`;
-        const lines = text.split("\n");
-        ctx.font = "11px -apple-system, BlinkMacSystemFont";
-        const lineHeight = 14;
-        const maxWidth = Math.max(...lines.map((line) => ctx.measureText(line).width)) + 8;
-        const boxHeight = lineHeight * lines.length + 8;
-
-        const px = toPixelX(x);
-        const py = toPixelY(y);
-        const boxX = Math.min(Math.max(px + 8, margin.left), width - margin.right - maxWidth);
-        const boxY = Math.min(Math.max(py - boxHeight - 8, margin.top), height - margin.bottom - boxHeight);
-
-        ctx.fillStyle = "rgba(13, 17, 23, 0.95)";
-        ctx.fillRect(boxX, boxY, maxWidth, boxHeight);
-        ctx.strokeStyle = "#30363d";
-        ctx.lineWidth = 1 / dpr;
-        ctx.strokeRect(boxX, boxY, maxWidth, boxHeight);
-
-        ctx.fillStyle = "#e6edf3";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        lines.forEach((line, i) => {
-          ctx.fillText(line, boxX + 4, boxY + 4 + i * lineHeight);
-        });
-      }
-
-      canvas.addEventListener("mousemove", (event) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        let found = null;
-        visible.forEach((model) => {
-          const mx = getDepthValue(model, "first", "mm");
-          const my = getDepthValue(model, "twelfth", "mm");
-          const px = toPixelX(mx);
-          const py = toPixelY(my);
-          const dist = Math.hypot(px - x, py - y);
-          if (dist < 12 && !found) {
-            found = model;
-          }
-        });
-        state.hover = found;
-        drawChunkMap();
-      });
-
-      canvas.addEventListener("mouseleave", () => {
-        state.hover = null;
-        drawChunkMap();
-      });
-    }
-
-    function hexToRgb(hex) {
+        function hexToRgb(hex) {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [139, 148, 158];
     }
 
-    function drawTaperChart() {
-      const canvas = ui.taperCanvas;
-      const ctx = ui.taperCtx;
-      const { width, height, dpr } = resizeCanvas(canvas);
-
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "#0d1117";
-      ctx.fillRect(0, 0, width, height);
-
-      const visible = getVisibleModels();
-      const tapers = visible.map((m) => getTaper(m, state.unit));
-      const minTaper = Math.min(0, Math.min(...tapers)) - 0.5;
-      const maxTaper = Math.max(...tapers) + 0.5;
-
-      const margin = { top: 40, right: 40, bottom: 60, left: 60 };
-      const plotHeight = height - margin.top - margin.bottom;
-      const scaleY = plotHeight / (maxTaper - minTaper);
-
-      const toPixelY = (val) => height - margin.bottom - (val - minTaper) * scaleY;
-
-      // Draw y-axis
-      ctx.strokeStyle = "#30363d";
-      ctx.lineWidth = 1 / dpr;
-      ctx.beginPath();
-      ctx.moveTo(margin.left, margin.top);
-      ctx.lineTo(margin.left, height - margin.bottom);
-      ctx.stroke();
-
-      // Draw gridlines and adaptive labels
-      ctx.font = "11px -apple-system, BlinkMacSystemFont";
-      ctx.fillStyle = "#6e7681";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "middle";
-
-      const step = state.unit === "mm" ? 1 : 0.05;
-      const minPixelSpacing = width < 500 ? 45 : 35;
-      let lastLabelY = -Infinity;
-
-      for (let val = minTaper; val <= maxTaper; val += step) {
-        const py = toPixelY(val);
-        if (py >= margin.top && py <= height - margin.bottom) {
-          ctx.strokeStyle = "rgba(110, 118, 129, 0.2)";
-          ctx.beginPath();
-          ctx.moveTo(margin.left, py);
-          ctx.lineTo(width - margin.right, py);
-          ctx.stroke();
-          
-          if (lastLabelY - py >= minPixelSpacing) {
-            const label = state.unit === "mm" ? val.toFixed(0) : formatDepth(val, "in");
-            ctx.fillText(label, margin.left - 8, py);
-            lastLabelY = py;
-          }
-        }
-      }
-
-      // Draw lines
-      visible.forEach((model) => {
-        const taper = getTaper(model, state.unit);
-        const color = groupColor(model.group);
-        const isSelected = model.name === state.selectedModel;
-        const lineWidth = isSelected ? 3 / dpr : 1 / dpr;
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        ctx.moveTo(margin.left + 20, toPixelY(0));
-        const endX = width - margin.right - 20;
-        ctx.lineTo(endX, toPixelY(taper));
-        ctx.stroke();
-
-        if (isSelected) {
-          const midX = (margin.left + 20 + endX) / 2;
-          const midY = toPixelY(taper / 2);
-          ctx.fillStyle = color;
-          ctx.font = "bold 12px -apple-system, BlinkMacSystemFont";
-          ctx.textAlign = "center";
-          ctx.fillText(model.name, midX, midY - 12);
-        }
-      });
-
-      // Axis label
-      ctx.font = "12px -apple-system, BlinkMacSystemFont";
-      ctx.fillStyle = "#8b949e";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "top";
-      const unitLabel = state.unit === "mm" ? "mm" : "in";
-      ctx.fillText(`Taper (${unitLabel})`, margin.left - 8, margin.top - 20);
-    }
-
-    function drawRankedChart() {
+        function drawRankedChart() {
       const visible = getVisibleModels().slice();
       const fret = state.fret;
       visible.sort((a, b) => getDepthValue(b, fret, state.unit) - getDepthValue(a, fret, state.unit));
@@ -1717,7 +1353,7 @@ const MODELS = [
           ? `<div class="ranked-bar-range" style="left:${((range[0] / maxDepth) * 100).toFixed(1)}%;width:${(((range[1] - range[0]) / maxDepth) * 100).toFixed(1)}%;"></div>`
           : "";
 
-        const color = groupColor(model.group);
+        const color = modelColor(model);
         const badge = makeBadge(model.provenance);
 
         const nameDisplay = model.name.length > 30 ? model.name.substring(0, 27) + "..." : model.name;
@@ -1741,8 +1377,92 @@ const MODELS = [
       ui.rankedChart.innerHTML = html;
     }
 
-    function drawBuyersTable() {
-      const visible = getVisibleModels();
+    function setupTableSort() {
+      const headers = document.querySelectorAll("table thead th[data-sort-key]");
+      headers.forEach((th) => {
+        if (!th.dataset.baseLabel) {
+          th.dataset.baseLabel = th.textContent.trim();
+        }
+        th.style.cursor = "pointer";
+        th.addEventListener("click", () => {
+          const key = th.getAttribute("data-sort-key");
+          if (state.tableSort.key === key) {
+            state.tableSort.dir = state.tableSort.dir === "asc" ? "desc" : "asc";
+          } else {
+            state.tableSort.key = key;
+            state.tableSort.dir = "asc";
+          }
+          scheduleRefresh();
+        });
+      });
+    }
+
+function drawBuyersTable() {
+      let visible = getVisibleModels();
+
+      // Sort the visible models
+      visible.sort((a, b) => {
+        const key = state.tableSort.key;
+        let aVal, bVal;
+
+        if (key === "name") {
+          aVal = a.name;
+          bVal = b.name;
+          return state.tableSort.dir === "asc"
+            ? aVal.localeCompare(bVal, undefined, { sensitivity: "base" })
+            : bVal.localeCompare(aVal, undefined, { sensitivity: "base" });
+        } else if (key === "group") {
+          aVal = a.group;
+          bVal = b.group;
+          return state.tableSort.dir === "asc"
+            ? aVal.localeCompare(bVal, undefined, { sensitivity: "base" })
+            : bVal.localeCompare(aVal, undefined, { sensitivity: "base" });
+        } else if (key === "first") {
+          aVal = getDepthValue(a, "first", state.unit);
+          bVal = getDepthValue(b, "first", state.unit);
+          return state.tableSort.dir === "asc" ? aVal - bVal : bVal - aVal;
+        } else if (key === "twelfth") {
+          aVal = getDepthValue(a, "twelfth", state.unit);
+          bVal = getDepthValue(b, "twelfth", state.unit);
+          return state.tableSort.dir === "asc" ? aVal - bVal : bVal - aVal;
+        } else if (key === "taper") {
+          aVal = getTaper(a, state.unit);
+          bVal = getTaper(b, state.unit);
+          return state.tableSort.dir === "asc" ? aVal - bVal : bVal - aVal;
+        } else if (key === "profile") {
+          aVal = a.profile;
+          bVal = b.profile;
+          return state.tableSort.dir === "asc"
+            ? aVal.localeCompare(bVal, undefined, { sensitivity: "base" })
+            : bVal.localeCompare(aVal, undefined, { sensitivity: "base" });
+        } else if (key === "shoulder") {
+          aVal = a.shoulder;
+          bVal = b.shoulder;
+          return state.tableSort.dir === "asc"
+            ? aVal.localeCompare(bVal, undefined, { sensitivity: "base" })
+            : bVal.localeCompare(aVal, undefined, { sensitivity: "base" });
+        } else if (key === "provenance") {
+          aVal = a.provenance;
+          bVal = b.provenance;
+          return state.tableSort.dir === "asc"
+            ? aVal.localeCompare(bVal, undefined, { sensitivity: "base" })
+            : bVal.localeCompare(aVal, undefined, { sensitivity: "base" });
+        } else if (key === "note") {
+          aVal = a.note || "";
+          bVal = b.note || "";
+          return state.tableSort.dir === "asc"
+            ? aVal.localeCompare(bVal, undefined, { sensitivity: "base" })
+            : bVal.localeCompare(aVal, undefined, { sensitivity: "base" });
+        } else if (key === "source") {
+          aVal = a.source || "";
+          bVal = b.source || "";
+          return state.tableSort.dir === "asc"
+            ? aVal.localeCompare(bVal, undefined, { sensitivity: "base" })
+            : bVal.localeCompare(aVal, undefined, { sensitivity: "base" });
+        }
+        return 0;
+      });
+
       const html = visible.map((model) => {
         const badge = makeBadge(model.provenance);
         const first = formatDepth(getDepthValue(model, "first", state.unit), state.unit);
@@ -1769,12 +1489,29 @@ const MODELS = [
       }).join("");
 
       ui.tableBody.innerHTML = html;
+
+      // Update header indicators
+      const headers = document.querySelectorAll("table thead th[data-sort-key]");
+      headers.forEach((th) => {
+        const key = th.getAttribute("data-sort-key");
+        const baseLabel = th.dataset.baseLabel || th.textContent.trim();
+        if (key === state.tableSort.key) {
+          const indicator = state.tableSort.dir === "asc" ? " ▲" : " ▼";
+          th.textContent = baseLabel + indicator;
+        } else {
+          th.textContent = baseLabel;
+        }
+      });
+
+      // Setup sort handlers on first render
+      if (!state.tableSortSetup) {
+        setupTableSort();
+        state.tableSortSetup = true;
+      }
     }
 
     function renderAll() {
       drawCrossSection();
-      drawChunkMap();
-      drawTaperChart();
       drawRankedChart();
       drawBuyersTable();
     }
