@@ -1098,23 +1098,16 @@ const MODELS = [
       const depthMm = state.fret === "first" ? model.first_mm : model.twelfth_mm;
       const fretboardWidthMm = state.fret === "first" ? 43.0 : 52.4;
       const fretboardThicknessMm = 5.5;
-      const k = model.k;
 
       const margin = { top: 40, right: 60, bottom: 60, left: 60 };
       const drawWidth = width - margin.left - margin.right;
       const drawHeight = height - margin.top - margin.bottom;
-
       const mmPerPx = Math.max(depthMm + 5, fretboardWidthMm + 5) / Math.min(drawWidth, drawHeight);
       const scale = 1 / mmPerPx;
-
       const centerX = margin.left + drawWidth / 2;
       const centerY = margin.top + drawHeight / 2;
 
-      // Determine ruler step size based on unit
-      const rulerStep = state.unit === "mm" ? 5 : 5 / 25.4;
-      const rulerStepMm = state.unit === "mm" ? 5 : 5 / 25.4 * 25.4;
-
-      // Draw ruler grid
+      // Draw ruler grid. Inch ticks are exactly 0.1in apart (2.54mm).
       ctx.strokeStyle = "rgba(110, 118, 129, 0.2)";
       ctx.lineWidth = 1 / dpr;
       ctx.font = "11px -apple-system, BlinkMacSystemFont";
@@ -1122,17 +1115,21 @@ const MODELS = [
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
 
-      let rulerValue = state.unit === "mm" ? 5 : 0.2;
-      for (let mm = 5; mm <= 50; mm += 5) {
+      const rulerStepMm = state.unit === "mm" ? 5 : 2.54;
+      const rulerLimitMm = state.unit === "mm" ? 50 : 50.8;
+
+      for (let mm = rulerStepMm, index = 1; mm <= rulerLimitMm + 0.001; mm += rulerStepMm, index++) {
         const py = centerY - mm * scale;
         if (py >= margin.top + 14 && py <= height - margin.bottom - 14) {
           ctx.beginPath();
           ctx.moveTo(margin.left - 5, py);
           ctx.lineTo(width - margin.right + 5, py);
           ctx.stroke();
-          const tickLabel = state.unit === "mm" ? rulerValue + "mm" : formatDepth(rulerValue, "in") + '"';
+
+          const tickLabel = state.unit === "mm"
+            ? `${mm}mm`
+            : `${(index / 10).toFixed(1)}"`;
           ctx.fillText(tickLabel, margin.left - 15, py - 6);
-          rulerValue += state.unit === "mm" ? 5 : 0.197;
         }
       }
 
@@ -1148,7 +1145,6 @@ const MODELS = [
 
       // Draw dimension arrows
       const arrowSize = 8;
-      ctx.fillStyle = "#58a6ff";
       const leftArrow = centerX - depthPx / 2;
       const rightArrow = centerX + depthPx / 2;
       ctx.beginPath();
@@ -1161,12 +1157,10 @@ const MODELS = [
       ctx.stroke();
 
       // Compute shoulder index for primary model
-      const halfWidthMm = fretboardWidthMm / 2;
-      const shoulderXFraction = 0.65;
-      const shoulderXNorm = shoulderXFraction;
-      const kVal = model.k;
-      const shoulderFactor = Math.pow(1 - Math.pow(shoulderXNorm, kVal), 1 / kVal);
-      const shoulderDepthMm = fretboardThicknessMm + (depthMm - fretboardThicknessMm) * shoulderFactor;
+      const shoulderXNorm = 0.65;
+      const shoulderFactor = Math.pow(1 - Math.pow(shoulderXNorm, model.k), 1 / model.k);
+      const shoulderDepthMm = fretboardThicknessMm +
+        (depthMm - fretboardThicknessMm) * shoulderFactor;
       const shoulderIndex = Math.round((shoulderDepthMm / depthMm) * 100);
 
       // Draw depth label and shoulder index
@@ -1174,29 +1168,27 @@ const MODELS = [
       ctx.font = "bold 13px -apple-system, BlinkMacSystemFont";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const depthDisplay = state.unit === "mm" ? formatDepth(depthMm, "mm") + " mm" : formatDepth(depthMm / 25.4, "in") + '"';
+      const depthDisplay = state.unit === "mm"
+        ? `${formatDepth(depthMm, "mm")} mm`
+        : `${formatDepth(depthMm / 25.4, "in")}"`;
       ctx.fillText(depthDisplay, centerX, centerY - 20);
+
       ctx.font = "11px -apple-system, BlinkMacSystemFont";
       ctx.fillStyle = "#8b949e";
-      ctx.fillText("shoulder index: " + shoulderIndex + "%", centerX, centerY - 5);
+      ctx.fillText(`shoulder index: ${shoulderIndex}%`, centerX, centerY - 5);
 
       // Draw profiles
       const colors = models.map((m, i) => i === 0 ? "#58a6ff" : groupColor(m.group));
-
       const shapeOnly = state.shapeOnly && models.length > 1;
       const primaryDepthMm = depthMm;
 
       models.forEach((m, idx) => {
         let depth = state.fret === "first" ? m.first_mm : m.twelfth_mm;
         const profileWidth = state.fret === "first" ? 43.0 : 52.4;
-        const kVal = m.k;
         const color = colors[idx];
         const alpha = idx === 0 ? 1 : 0.4;
 
-        // Apply shape-only normalization to overlays
-        if (shapeOnly && idx > 0) {
-          depth = primaryDepthMm;
-        }
+        if (shapeOnly && idx > 0) depth = primaryDepthMm;
 
         // Draw fretboard
         ctx.fillStyle = `rgba(45, 164, 78, ${alpha * 0.6})`;
@@ -1219,14 +1211,13 @@ const MODELS = [
         for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * 2 - 1;
           const absT = Math.abs(t);
-          const factor = Math.pow(1 - Math.pow(absT, kVal), 1 / kVal);
+          const factor = Math.pow(1 - Math.pow(absT, m.k), 1 / m.k);
           const x = centerX + t * (profileWidth / 2) * scale;
-          const y = centerY - (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+          const y = centerY -
+            (fretboardThicknessMm + (depth - fretboardThicknessMm) * factor) * scale;
+
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         }
         ctx.stroke();
 
@@ -1240,37 +1231,36 @@ const MODELS = [
 
       ctx.setLineDash([]);
 
-      // Draw shape-only caption if active
+      // Draw shape-only caption without overflowing the canvas
       if (shapeOnly) {
         ctx.fillStyle = "rgba(255, 200, 100, 0.9)";
-        const captionY = margin.top - 12;
-        const caption = "SHAPE ONLY - depths normalized to " + model.name;
         ctx.font = "bold 10px -apple-system, BlinkMacSystemFont";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        const captionWidth = ctx.measureText(caption).width;
-        const availableWidth = width - margin.left - margin.right - 16;
-        if (captionWidth > availableWidth) {
-          const line1 = "SHAPE ONLY - normalized to";
-          const line2 = model.name.length > 20 ? model.name.substring(0, 17) + "..." : model.name;
-          ctx.fillText(line1, centerX, captionY - 2);
-          ctx.fillText(line2, centerX, captionY + 10);
+
+        const availableWidth = Math.max(80, width - margin.left - margin.right - 16);
+        const caption = `SHAPE ONLY - depths normalized to ${model.name}, size differences hidden}`;
+
+        if (ctx.measureText(caption).width <= availableWidth) {
+          ctx.fillText(caption, centerX, margin.top - 10);
         } else {
-          ctx.fillText(caption, centerX, captionY);
+          const line1 = "SHAPE ONLY - depths normalized to";
+          const line2 = `${model.name}, size differences hidden`;
+          ctx.fillText(line1, centerX, margin.top - 20);
+          ctx.fillText(line2, centerX, margin.top - 8);
         }
       }
 
       // Legend
-      const legendHtml = models.map((m, i) => {
-        const style = i === 0 ? "solid" : "dashed";
+      ui.legend.innerHTML = models.map((m, i) => {
         const color = colors[i];
         return `<div class="legend-item"><div class="legend-color" style="background:${color};border:1px solid ${color}; opacity:${i === 0 ? 1 : 0.5};"></div> ${m.name}</div>`;
       }).join("");
-      ui.legend.innerHTML = legendHtml;
 
       // Update info panel
-      const shoulderLevelText = model.shoulderLevel ? " (" + model.shoulderLevel + ")" : "";
-      document.getElementById("cross-section-info").innerHTML = `<strong>${model.name}</strong>${shoulderLevelText} - ${model.shoulder}`;
+      const shoulderLevelText = model.shoulderLevel ? ` (${model.shoulderLevel})` : "";
+      document.getElementById("cross-section-info").innerHTML =
+        `<strong>${model.name}</strong>${shoulderLevelText} - ${model.shoulder}`;
     }
 
     function drawChunkMap() {
@@ -1368,7 +1358,7 @@ const MODELS = [
         if (px - lastLabelX >= minPixelSpacing) {
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
-          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
+          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick / 25.4, "in");
           ctx.fillText(label, px, height - margin.bottom + 8);
           lastLabelX = px;
         }
@@ -1386,7 +1376,7 @@ const MODELS = [
         if (lastLabelY - py >= minPixelSpacing) {
           ctx.textAlign = "right";
           ctx.textBaseline = "middle";
-          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick, "in");
+          const label = state.unit === "mm" ? tick.toFixed(0) : formatDepth(tick / 25.4, "in");
           ctx.fillText(label, margin.left - 8, py);
           lastLabelY = py;
         }
